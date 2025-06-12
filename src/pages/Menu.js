@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import {
   addCategory,
   deleteCategory,
@@ -9,13 +8,6 @@ import {
   editSubCategory,
   addSubCategory,
 } from "../redux/slices/menuSlice";
-import {
-  addToCart,
-  removeFromCart,
-  clearCart,
-  incrementQuantity,
-  decrementQuantity,
-} from "../redux/slices/cartSlice";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import AddCategoryModal from "../components/AddCategoryModal";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
@@ -23,17 +15,8 @@ import SubCategoryModal from "../components/SubCategoryModal";
 
 const Menu = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const categories = useSelector((state) => state.menu.categories) || [];
-  const cartItems = useSelector((state) => state.cart.items) || [];
-  const subtotal = cartItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
 
-  // State for modals and selections
-  const [confirmDeleteItem, setConfirmDeleteItem] = useState(null);
-  const [showAbandonModal, setShowAbandonModal] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -51,7 +34,6 @@ const Menu = () => {
     (cat) => cat.id === selectedCategoryId
   );
 
-  // Handlers
   const handleBack = () => {
     setSelectedCategoryId(null);
     setEditTarget(null);
@@ -89,7 +71,6 @@ const Menu = () => {
 
   const handleSaveSubCategory = (data) => {
     if (subCategoryEditData) {
-      // Handle edit
       dispatch(
         editSubCategory({
           categoryId: selectedCategoryId,
@@ -98,11 +79,10 @@ const Menu = () => {
           ),
           name: data.name,
           price: data.price,
-          id: subCategoryEditData.id, // Preserve existing ID
+          id: subCategoryEditData.id,
         })
       );
     } else {
-      // Handle add new
       dispatch(
         addSubCategory({
           categoryId: selectedCategoryId,
@@ -120,9 +100,6 @@ const Menu = () => {
   const handleSave = (data, isEdit = false) => {
     if (isEdit) {
       if (editTarget?.isSubCategory) {
-        // Editing a subcategory through the main modal
-        const categoryId = editTarget.categoryId || selectedCategoryId;
-        // In your edit handler:
         dispatch(
           editSubCategory({
             categoryId: selectedCategory.id,
@@ -135,18 +112,16 @@ const Menu = () => {
           })
         );
       } else {
-        // Editing a category
         dispatch(
           editCategory({
             id: data.id,
             name: data.name,
-            subCategories: data.subCategories, // Include updated subcategories
+            subCategories: data.subCategories,
           })
         );
       }
     } else {
       if (editTarget?.isSubCategory) {
-        // Adding a new subcategory through the main modal
         const categoryId = editTarget.categoryId || selectedCategoryId;
         dispatch(
           addSubCategory({
@@ -158,7 +133,6 @@ const Menu = () => {
           })
         );
       } else {
-        // Adding a new category
         dispatch(addCategory(data));
       }
     }
@@ -176,12 +150,9 @@ const Menu = () => {
   });
 
   return (
-    <div
-      className="container-fluid px-3"
-      style={{ height: "100vh", overflow: "hidden" }}
-    >
+    <div className="container-fluid px-3" style={{ height: "100vh", overflow: "hidden" }}>
       <div className="row min-vh-100 align-items-stretch">
-        <div className="col-12 col-lg-8 col-md-8 border-end py-4 pe-0">
+        <div className="col-12 py-4 pe-0">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Menu</h4>
             <div className="d-flex align-items-center gap-2">
@@ -208,17 +179,14 @@ const Menu = () => {
           {selectedCategory ? (
             <>
               <div className="d-flex align-items-center justify-content-between my-5">
-                <button
-                  className="btn btn-outline-dark shadow-sm"
-                  onClick={handleBack}
-                >
+                <button className="btn btn-outline-dark shadow-sm" onClick={handleBack}>
                   ← Back
                 </button>
                 <button
                   className="btn btn-outline-success shadow-sm me-2"
                   onClick={handleAddSubCategory}
                 >
-                  + Add New Subcategory
+                  + Add New Item
                 </button>
               </div>
               <h5 className="mb-3">{selectedCategory.name}</h5>
@@ -248,8 +216,6 @@ const Menu = () => {
                         )}
                         <strong className="mt-2 mb-0">{item.name}</strong>
                         <p className="mb-0 text-success">£ {item.price}</p>
-
-                        {/* Add description with ellipsis */}
                         {item.description && (
                           <div
                             className="px-2 mb-2 text-muted"
@@ -265,21 +231,6 @@ const Menu = () => {
                             <small>{item.description}</small>
                           </div>
                         )}
-
-                        <button
-                          className="btn btn-outline-dark mt-3"
-                          onClick={() => {
-                            dispatch(
-                              addToCart({
-                                id: item.id,
-                                name: item.name,
-                                price: item.price,
-                              })
-                            );
-                          }}
-                        >
-                          Add to Cart
-                        </button>
                         <div className="hover-icons position-absolute m-1 d-flex gap-2 icons-main">
                           <FaEdit
                             className="text-primary cursor-pointer sub-category-icon"
@@ -322,7 +273,7 @@ const Menu = () => {
                       {cat.image && (
                         <div
                           className="w-100 mb-2"
-                          style={{ height: "100px", overflow: "hidden" }}
+                          style={{ height: "160px", overflow: "hidden" }}
                         >
                           <img
                             src={cat.image}
@@ -336,9 +287,7 @@ const Menu = () => {
                         </div>
                       )}
                       <p className="mt-2 mb-0 w-100">{cat.name}</p>
-                      <button className="btn btn-outline-dark mt-2">
-                        View Menu
-                      </button>
+                      <button className="btn btn-outline-dark mt-2">View Menu</button>
                       <div
                         className="position-absolute m-1 d-flex gap-2 icons-main"
                         onClick={(e) => e.stopPropagation()}
@@ -368,69 +317,6 @@ const Menu = () => {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Cart Section */}
-        <div className="col-12 col-lg-4 col-md-4 py-4">
-          <div className="item-main">
-            {cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="border p-2 mb-2 d-flex align-items-center justify-content-between"
-              >
-                <div>
-                  <p className="mb-0">{item.name}</p>
-                  <small>£ {(item.price * item.quantity).toFixed(2)}</small>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  <button
-                    className="btn btn-sm btn-outline-secondary custom-cart-btn"
-                    onClick={() => dispatch(decrementQuantity(item.id))}
-                  >
-                    -
-                  </button>
-                  <span>{item.quantity}</span>
-                  <button
-                    className="btn btn-sm btn-outline-secondary custom-cart-btn"
-                    onClick={() => dispatch(incrementQuantity(item.id))}
-                  >
-                    +
-                  </button>
-                  <FaTrash
-                    className="text-danger cursor-pointer"
-                    onClick={() => setConfirmDeleteItem(item.id)}
-                  />
-                </div>
-              </div>
-            ))}
-
-            <div className="border-top pt-3 mt-3 total_box">
-              <div className="d-flex justify-content-between">
-                <strong>Subtotal</strong>
-                <span>£ {subtotal.toFixed(2)}</span>
-              </div>
-              <div className="d-flex justify-content-between mb-3">
-                <strong>Total</strong>
-                <span>£ {subtotal.toFixed(2)}</span>
-              </div>
-              <div className="d-flex gap-2">
-                <button
-                  className="btn btn-light flex-fill text-danger border"
-                  onClick={() => setShowAbandonModal(true)}
-                  disabled={cartItems.length === 0}
-                >
-                  Abandon Order
-                </button>
-                <button
-                  className="btn btn-success flex-fill"
-                  onClick={() => navigate("/checkout")}
-                  disabled={cartItems.length === 0}
-                >
-                  Checkout
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -469,26 +355,6 @@ const Menu = () => {
         itemName={
           deleteModal.type === "category" ? "this category" : "this subcategory"
         }
-      />
-
-      <DeleteConfirmationModal
-        show={!!confirmDeleteItem}
-        onHide={() => setConfirmDeleteItem(null)}
-        onConfirm={() => {
-          dispatch(removeFromCart(confirmDeleteItem));
-          setConfirmDeleteItem(null);
-        }}
-        itemName="this item"
-      />
-
-      <DeleteConfirmationModal
-        show={showAbandonModal}
-        onHide={() => setShowAbandonModal(false)}
-        onConfirm={() => {
-          dispatch(clearCart());
-          setShowAbandonModal(false);
-        }}
-        itemName="the entire order"
       />
     </div>
   );
