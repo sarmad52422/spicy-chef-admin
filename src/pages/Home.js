@@ -71,7 +71,7 @@ const Home = () => {
           >
             Go Back
           </Button>
-          <Link to="/menu"
+          <Link to="/live-order"
             className="btn btn-outline-dark"
             onClick={() => {
               handleClose();

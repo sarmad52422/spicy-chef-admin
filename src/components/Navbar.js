@@ -32,9 +32,9 @@ const Navbar = () => {
               <Link to="/menu" className="btn btn-outline-dark">
                 Menu
               </Link>
-              <Link to="/live-order" className="btn btn-outline-dark">
+              {/* <Link to="/live-order" className="btn btn-outline-dark">
                 Live Order
-              </Link>
+              </Link> */}
               <Link to="/pending-payments" className="btn btn-outline-dark">
                 Pending Payments
               </Link>
