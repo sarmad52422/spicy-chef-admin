@@ -64,10 +64,10 @@ const Menu = () => {
     setShowSubCategoryModal(true);
   };
 
-  const handleEditSubCategory = (subCategory) => {
-    setSubCategoryEditData(subCategory);
-    setShowSubCategoryModal(true);
-  };
+  // const handleEditSubCategory = (subCategory) => {
+  //   setSubCategoryEditData(subCategory);
+  //   setShowSubCategoryModal(true);
+  // };
 
   const handleSaveSubCategory = (data) => {
     if (subCategoryEditData) {

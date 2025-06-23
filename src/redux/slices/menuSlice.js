@@ -8,10 +8,7 @@ const menuSlice = createSlice({
   name: "menu",
   initialState,
   reducers: {
-    initializeMenu: (state, action) => {
-      return action.payload; // or whatever initialization logic you need
-    },
-    // Initialize with loaded data
+    // ✅ Correct: Single initializeMenu reducer
     initializeMenu: (state, action) => {
       state.categories = action.payload || [];
     },
@@ -49,11 +46,13 @@ const menuSlice = createSlice({
         };
       }
     },
+
     deleteCategory: (state, action) => {
       state.categories = state.categories.filter(
         (cat) => cat.id !== action.payload.id
       );
     },
+
     addSubCategory: (state, action) => {
       const { categoryId, subCategory } = action.payload;
       const category = state.categories.find((cat) => cat.id === categoryId);
@@ -64,8 +63,10 @@ const menuSlice = createSlice({
         });
       }
     },
+
     editSubCategory: (state, action) => {
-      const { categoryId, subIndex, name, price, id, image, description } = action.payload;
+      const { categoryId, subIndex, name, price, id, image, description } =
+        action.payload;
       const category = state.categories.find((cat) => cat.id === categoryId);
       if (category && category.subCategories[subIndex]) {
         category.subCategories[subIndex] = {
@@ -80,10 +81,12 @@ const menuSlice = createSlice({
               ? image
               : category.subCategories[subIndex].image,
           id: id || category.subCategories[subIndex].id,
-          description: description || category.subCategories[subIndex].description,
+          description:
+            description || category.subCategories[subIndex].description,
         };
       }
     },
+
     deleteSubCategory: (state, action) => {
       const { categoryId, subIndex } = action.payload;
       const category = state.categories.find((cat) => cat.id === categoryId);
