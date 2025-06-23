@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [time, setTime] = useState("");
+  const location = useLocation();
 
   useEffect(() => {
     const updateTime = () => {
@@ -10,15 +11,19 @@ const Navbar = () => {
       let hours = now.getHours();
       const minutes = now.getMinutes().toString().padStart(2, "0");
       const ampm = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12 || 12; // Convert 0 to 12
+      hours = hours % 12 || 12;
       setTime(`${hours}:${minutes} ${ampm}`);
     };
 
-    updateTime(); // Set immediately
-    const interval = setInterval(updateTime, 1000); // Update every second
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
 
     return () => clearInterval(interval);
   }, []);
+
+  if (location.pathname === "/login") {
+    return null;
+  }
 
   return (
     <div className="container-fluid">
@@ -32,9 +37,9 @@ const Navbar = () => {
               <Link to="/menu" className="btn btn-outline-dark">
                 Menu
               </Link>
-              {/* <Link to="/live-order" className="btn btn-outline-dark">
+              <Link to="/live-order" className="btn btn-outline-dark">
                 Live Order
-              </Link> */}
+              </Link>
               <Link to="/pending-payments" className="btn btn-outline-dark">
                 Pending Payments
               </Link>

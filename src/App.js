@@ -11,6 +11,7 @@ import Checkout from "./pages/Checkout";
 import { useDispatch } from "react-redux";
 import { initializeMenu } from "./redux/slices/menuSlice";
 import { useEffect } from "react";
+import Login from "./pages/Login";
 
 function App() {
   const dispatch = useDispatch();
@@ -32,6 +33,7 @@ function App() {
         <Route path="/pending-payments" element={<PendingPayments />} />
         <Route path="/text-to-pay" element={<TextToPay />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
   );
