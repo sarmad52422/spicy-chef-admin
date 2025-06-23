@@ -12,6 +12,9 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import AddCategoryModal from "../components/AddCategoryModal";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SubCategoryModal from "../components/SubCategoryModal";
+import Alert from "../components/Alert";
+
+const API_BASE_URL = "https://api.eatmeonline.co.uk/api";
 
 const Menu = () => {
   const dispatch = useDispatch();
@@ -29,6 +32,8 @@ const Menu = () => {
     categoryId: null,
     subIndex: null,
   });
+  const [alert, setAlert] = useState({ type: "", message: "" });
+  const [loading, setLoading] = useState(false);
 
   const selectedCategory = categories.find(
     (cat) => cat.id === selectedCategoryId
@@ -39,7 +44,7 @@ const Menu = () => {
     setEditTarget(null);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteModal.type === "sub") {
       dispatch(
         deleteSubCategory({
@@ -48,7 +53,7 @@ const Menu = () => {
         })
       );
     } else if (deleteModal.type === "category") {
-      dispatch(deleteCategory({ id: deleteModal.categoryId }));
+      await deleteCategoryApi(deleteModal.categoryId);
       setSelectedCategoryId(null);
     }
     setDeleteModal({
@@ -97,47 +102,157 @@ const Menu = () => {
     setSubCategoryEditData(null);
   };
 
-  const handleSave = (data, isEdit = false) => {
-    if (isEdit) {
-      if (editTarget?.isSubCategory) {
-        dispatch(
-          editSubCategory({
-            categoryId: selectedCategory.id,
-            subIndex: selectedCategory.subCategories.findIndex(
-              (sub) => sub.id === editTarget.id
-            ),
-            name: data.name,
-            price: data.price,
-            id: editTarget.id,
-          })
-        );
+  // API helpers
+  const getAuthHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  });
+
+  const createCategory = async (category) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", category.name);
+      if (category.image) formData.append("image", category.image);
+      // You may need to set branch_id if required by your API
+      // formData.append("branch_id", category.branch_id);
+      const items = (category.subCategories || []).map((item) => {
+        const { image, ...rest } = item;
+        return rest;
+      });
+      formData.append("items", JSON.stringify(items));
+      (category.subCategories || []).forEach((item, idx) => {
+        if (item.image) formData.append(`items_images`, item.image);
+      });
+
+      const res = await fetch(`${API_BASE_URL}/admin/category`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Category created successfully!" });
       } else {
-        dispatch(
-          editCategory({
-            id: data.id,
-            name: data.name,
-            subCategories: data.subCategories,
-          })
-        );
+        let errorMsg = data.message || "Failed to create category";
+        if (data.error && Array.isArray(data.error.errors)) {
+          errorMsg = data.error.errors.map(e => e.msg).join(" | ");
+        }
+        setAlert({ type: "error", message: errorMsg });
       }
-    } else {
-      if (editTarget?.isSubCategory) {
-        const categoryId = editTarget.categoryId || selectedCategoryId;
-        dispatch(
-          addSubCategory({
-            categoryId,
-            subCategory: {
-              ...data,
-              id: Date.now(),
-            },
-          })
-        );
-      } else {
-        dispatch(addCategory(data));
-      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
     }
-    setShowAddModal(false);
-    setEditTarget(null);
+  };
+
+  const updateCategory = async (category) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("id", category.id);
+      formData.append("name", category.name);
+      if (category.image) formData.append("image", category.image);
+      // formData.append("branch_id", category.branch_id);
+      const items = (category.subCategories || []).map((item) => {
+        const { image, ...rest } = item;
+        return rest;
+      });
+      formData.append("items", JSON.stringify(items));
+      (category.subCategories || []).forEach((item, idx) => {
+        if (item.image) formData.append(`items_images`, item.image);
+      });
+
+      const res = await fetch(`${API_BASE_URL}/admin/category`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Category updated successfully!" });
+      } else {
+        let errorMsg = data.message || "Failed to update category";
+        if (data.error && Array.isArray(data.error.errors)) {
+          errorMsg = data.error.errors.map(e => e.msg).join(" | ");
+        }
+        setAlert({ type: "error", message: errorMsg });
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCategoryApi = async (categoryId) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/category/${categoryId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Category deleted successfully!" });
+        // Optionally refresh categories from API here
+      } else {
+        throw new Error(data.message || "Failed to delete category");
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (data, isEdit = false) => {
+    // Return a promise so modal can await
+    return new Promise(async (resolve) => {
+      if (isEdit) {
+        if (editTarget?.isSubCategory) {
+          dispatch(
+            editSubCategory({
+              categoryId: selectedCategory.id,
+              subIndex: selectedCategory.subCategories.findIndex(
+                (sub) => sub.id === editTarget.id
+              ),
+              name: data.name,
+              price: data.price,
+              id: editTarget.id,
+            })
+          );
+          resolve();
+        } else {
+          await updateCategory(data);
+          resolve();
+        }
+      } else {
+        if (editTarget?.isSubCategory) {
+          const categoryId = editTarget.categoryId || selectedCategoryId;
+          dispatch(
+            addSubCategory({
+              categoryId,
+              subCategory: {
+                ...data,
+                id: Date.now(),
+              },
+            })
+          );
+          resolve();
+        } else {
+          await createCategory(data);
+          resolve();
+        }
+      }
+      setShowAddModal(false);
+      setEditTarget(null);
+    });
   };
 
   const filteredCategories = categories.filter((cat) => {
@@ -151,6 +266,7 @@ const Menu = () => {
 
   return (
     <div className="container-fluid px-3" style={{ height: "100vh", overflow: "hidden" }}>
+      <Alert type={alert.type} message={alert.message} onClose={() => setAlert({})} />
       <div className="row min-vh-100 align-items-stretch">
         <div className="col-12 py-4 pe-0">
           <div className="d-flex justify-content-between align-items-center mb-3">
