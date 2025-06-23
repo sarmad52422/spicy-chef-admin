@@ -10,6 +10,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const [subCategories, setSubCategories] = useState([
     { name: "", price: "", id: Date.now(), image: null, description: "" },
   ]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (editData) {
@@ -48,21 +49,17 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const handleImageChange = (e, index = null) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (index !== null) {
-          const updated = subCategories.map((sub, i) => {
-            if (i === index) {
-              return { ...sub, image: reader.result };
-            }
-            return sub;
-          });
-          setSubCategories(updated);
-        } else {
-          setCategoryImage(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      if (index !== null) {
+        const updated = subCategories.map((sub, i) => {
+          if (i === index) {
+            return { ...sub, image: file };
+          }
+          return sub;
+        });
+        setSubCategories(updated);
+      } else {
+        setCategoryImage(file);
+      }
     }
   };
 
@@ -107,7 +104,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (editData?.isSubCategory) {
       if (!subCategories[0].image) {
         alert("Item image is required");
@@ -122,7 +119,13 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
         description: subCategories[0].description || "",
       };
 
-      onSave({ ...editData, ...updatedSub }, true);
+      setLoading(true);
+      try {
+        await onSave({ ...editData, ...updatedSub }, true);
+        onHide();
+      } finally {
+        setLoading(false);
+      }
     } else {
       const hasInvalidSubs = subCategories.some(
         (sc) => sc.name.trim() && !sc.image
@@ -143,33 +146,23 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
           description: sc.description || "",
         }));
 
-      if (editData) {
-        // Editing an existing category
-        dispatch(
-          editCategory({
-            id: editData.id,
-            name: categoryName.trim(),
-            image: categoryImage,
-            subCategories: validSubs,
-          })
-        );
-      } else {
-        // Adding a new category
-        dispatch(
-          addCategory({
-            name: categoryName.trim(),
-            image: categoryImage,
-            subCategories: validSubs,
-          })
-        );
+      setLoading(true);
+      try {
+        await onSave({
+          name: categoryName.trim(),
+          image: categoryImage,
+          subCategories: validSubs,
+        });
+        onHide();
+      } finally {
+        setLoading(false);
       }
     }
-    onHide();
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
-      <Modal.Header closeButton>
+    <Modal show={show} onHide={loading ? undefined : onHide} size="lg" centered>
+      <Modal.Header closeButton={!loading}>
         <Modal.Title>
           {editData?.isSubCategory
             ? "Edit Menu Item"
@@ -199,7 +192,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                 {categoryImage ? (
                   <div className="d-flex align-items-center justify-content-end gap-2 mb-2">
                     <img
-                      src={categoryImage}
+                      src={typeof categoryImage === "string" ? categoryImage : URL.createObjectURL(categoryImage)}
                       alt="Preview"
                       style={{
                         width: "75px",
@@ -259,7 +252,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                   {sub.image ? (
                     <div className="d-flex align-items-center gap-2 mb-2">
                       <img
-                        src={sub.image}
+                        src={typeof sub.image === "string" ? sub.image : URL.createObjectURL(sub.image)}
                         alt="Preview"
                         style={{
                           width: "75px",
@@ -320,17 +313,21 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
+        <Button variant="secondary" onClick={onHide} disabled={loading}>
           Cancel
         </Button>
         <Button
           variant="primary"
           onClick={handleSubmit}
           disabled={
-            !editData?.isSubCategory &&
-            subCategories.some((sub) => !sub.image || !sub.name.trim())
+            loading ||
+            (!editData?.isSubCategory &&
+              subCategories.some((sub) => !sub.image || !sub.name.trim()))
           }
         >
+          {loading ? (
+            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          ) : null}
           {editData ? "Save Changes" : "Add Category"}
         </Button>
       </Modal.Footer>

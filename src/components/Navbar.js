@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [time, setTime] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const updateTime = () => {
@@ -24,6 +25,12 @@ const Navbar = () => {
   if (location.pathname === "/login") {
     return null;
   }
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   return (
     <div className="container-fluid">
@@ -47,8 +54,13 @@ const Navbar = () => {
                 Text to Pay Links
               </Link>
             </div>
-            <div className="text-muted">
-              <i className="bi bi-clock"></i> {time}
+            <div className="d-flex align-items-center gap-3">
+              <span className="text-muted">
+                <i className="bi bi-clock"></i> {time}
+              </span>
+              <button className="btn btn-outline-danger" onClick={handleLogout}>
+                Logout
+              </button>
             </div>
           </nav>
         </div>

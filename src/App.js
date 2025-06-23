@@ -1,6 +1,6 @@
 // src/App.js
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import LiveOrder from "./pages/LiveOrder";
@@ -12,6 +12,11 @@ import { useDispatch } from "react-redux";
 import { initializeMenu } from "./redux/slices/menuSlice";
 import { useEffect } from "react";
 import Login from "./pages/Login";
+
+function PrivateRoute({ children }) {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" replace />;
+}
 
 function App() {
   const dispatch = useDispatch();
@@ -27,13 +32,19 @@ function App() {
     <Router>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/live-order" element={<LiveOrder />} />
-        <Route path="/pending-payments" element={<PendingPayments />} />
-        <Route path="/text-to-pay" element={<TextToPay />} />
-        <Route path="/checkout" element={<Checkout />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/*" element={
+          <PrivateRoute>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/menu" element={<Menu />} />
+              <Route path="/live-order" element={<LiveOrder />} />
+              <Route path="/pending-payments" element={<PendingPayments />} />
+              <Route path="/text-to-pay" element={<TextToPay />} />
+              <Route path="/checkout" element={<Checkout />} />
+            </Routes>
+          </PrivateRoute>
+        } />
       </Routes>
     </Router>
   );
