@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import BranchSelectorModal from "./BranchSelectorModal";
 import { setBranch } from "../redux/slices/branchSlice";
@@ -7,9 +7,11 @@ import { setBranch } from "../redux/slices/branchSlice";
 const Navbar = () => {
   const [time, setTime] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const [showBranchModal, setShowBranchModal] = useState(false);
   const selectedBranch = useSelector((state) => state.branch.selectedBranch);
-  const dispatch = useDispatch();
 
   useEffect(() => {
     const updateTime = () => {
@@ -27,20 +29,26 @@ const Navbar = () => {
 
   if (location.pathname === "/login") return null;
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
     <>
       <div className="container-fluid">
         <div className="row">
           <div className="col-12 col-lg-8 col-md-8 border-bottom border-end">
             <nav className="d-flex align-items-center justify-content-between px-3 py-3">
-              <div className="d-flex gap-2">
+              <div className="d-flex gap-2 flex-wrap">
                 <Link to="/" className="btn btn-outline-dark">🏠 Home</Link>
                 <Link to="/menu" className="btn btn-outline-dark">Menu</Link>
                 <Link to="/live-order" className="btn btn-outline-dark">Live Order</Link>
                 <Link to="/pending-payments" className="btn btn-outline-dark">All Payments</Link>
                 <Link to="/text-to-pay" className="btn btn-outline-dark">Text to Pay Links</Link>
               </div>
-              <div className="text-muted d-flex align-items-center gap-3">
+              <div className="d-flex align-items-center gap-3 text-muted">
                 <span
                   className="fw-bold text-dark"
                   role="button"
@@ -49,8 +57,19 @@ const Navbar = () => {
                   📍 {selectedBranch?.name || "Select Branch"}
                 </span>
                 <i className="bi bi-clock"></i> {time}
+                <button className="btn btn-outline-danger btn-sm" onClick={handleLogout}>
+                  Logout
+                </button>
               </div>
             </nav>
+          </div>
+          <div className="col-12 col-lg-4 col-md-4 border-bottom">
+            <div className="d-flex gap-2 flex-wrap my-3">
+              <button className="btn btn-light shadow-sm rounded-pill">0 All</button>
+              <button className="btn btn-light shadow-sm rounded-pill">0 In-Store</button>
+              <button className="btn btn-light shadow-sm rounded-pill">0 Collection</button>
+              <button className="btn btn-light shadow-sm rounded-pill">0 Delivery</button>
+            </div>
           </div>
         </div>
       </div>
