@@ -41,7 +41,7 @@ const PendingPayments = () => {
 
   return (
     <div className="container-fluid py-4">
-      <h2 className="mb-4">Pending Payments</h2>
+      <h2 className="mb-4">All Payments</h2>
 
       {/* Stylish Tab Buttons */}
       <div className="d-flex gap-3 flex-wrap mb-4">
