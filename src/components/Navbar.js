@@ -40,7 +40,7 @@ const Navbar = () => {
       <div className="container-fluid">
         <div className="row">
           <div className="col-12 col-lg-8 col-md-8 border-bottom border-end">
-            <nav className="d-flex align-items-center justify-content-between px-3 py-3">
+            <nav className="d-flex align-items-center justify-content-between px-1 py-3">
               <div className="d-flex gap-2 flex-wrap">
                 <Link to="/" className="btn btn-outline-dark">🏠 Home</Link>
                 <Link to="/menu" className="btn btn-outline-dark">Menu</Link>
