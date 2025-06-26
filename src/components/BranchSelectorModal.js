@@ -1,15 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
 import { useSelector } from "react-redux";
 
-const branches = [
-  { id: 1, name: "Blackely", distance: "3.5", address: "dummy address" },
-  { id: 2, name: "Bury", distance: "1.0", address: "dummy address" },
-  { id: 3, name: "Redcliff", distance: "5.0", address: "dummy address" },
-];
-
 const BranchSelectorModal = ({ show, onClose, onSelect }) => {
   const selectedBranch = useSelector((state) => state.branch.selectedBranch);
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!show) return;
+    setLoading(true);
+    setError("");
+    fetch("https://api.eatmeonline.co.uk/api/branch")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status && data.result?.data) {
+          setBranches(data.result.data);
+        } else {
+          setError("Failed to fetch branches");
+        }
+      })
+      .catch(() => setError("Failed to fetch branches"))
+      .finally(() => setLoading(false));
+  }, [show]);
 
   return (
     <Modal show={show} onHide={onClose} centered backdrop="static">
@@ -17,9 +31,10 @@ const BranchSelectorModal = ({ show, onClose, onSelect }) => {
         <Modal.Title>From Branch</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {branches.map((branch) => {
+        {loading && <div>Loading branches...</div>}
+        {error && <div className="text-danger">{error}</div>}
+        {!loading && !error && branches.map((branch) => {
           const isSelected = selectedBranch?.id === branch.id;
-
           return (
             <div
               key={branch.id}
@@ -48,12 +63,12 @@ const BranchSelectorModal = ({ show, onClose, onSelect }) => {
                     {branch.name}
                   </h6>
                   <small className={isSelected ? "text-white-50" : "text-muted"}>
-                    {branch.address}
+                    {branch.address || "No address"}
                   </small>
                 </div>
               </div>
               <strong className={isSelected ? "text-white" : "text-dark"}>
-                {branch.distance} miles
+                {branch.distance ? `${branch.distance} miles` : ""}
               </strong>
             </div>
           );

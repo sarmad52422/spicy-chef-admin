@@ -79,6 +79,7 @@ const Navbar = () => {
         onClose={() => setShowBranchModal(false)}
         onSelect={(branch) => {
           dispatch(setBranch(branch));
+          localStorage.setItem("selectedBranch", JSON.stringify(branch));
           setShowBranchModal(false);
         }}
       />

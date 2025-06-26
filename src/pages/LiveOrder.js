@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -24,7 +24,9 @@ import SubCategoryModal from "../components/SubCategoryModal";
 const LiveOrder = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const categories = useSelector((state) => state.menu.categories) || [];
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const selectedBranch = useSelector((state) => state.branch.selectedBranch);
   const cartItems = useSelector((state) => state.cart.items) || [];
   const subtotal = cartItems.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -51,22 +53,119 @@ const LiveOrder = () => {
     (cat) => cat.id === selectedCategoryId
   );
 
-  // Handlers
+  const fetchCategories = async () => {
+    if (!selectedBranch?.id) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category?branch_id=${selectedBranch.id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await res.json();
+      if (data.status && data.result?.data) {
+        setCategories(data.result.data);
+      } else {
+        setCategories([]);
+      }
+    } catch (err) {
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, [selectedBranch]);
+
+  const createCategory = async (category) => {
+    setLoading(true);
+    try {
+      const payload = {
+        name: category.name,
+        image: category.image,
+        branch_id: selectedBranch.id,
+        items: (category.subCategories || []).map(item => ({
+          name: item.name,
+          price: String(item.price),
+          image: item.image,
+          description: item.description,
+        })),
+      };
+      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        await fetchCategories();
+      }
+    } catch (err) {}
+    setLoading(false);
+  };
+
+  const updateCategory = async (category) => {
+    setLoading(true);
+    try {
+      const payload = {
+        id: category.id,
+        name: category.name,
+        image: category.image,
+        branch_id: selectedBranch.id,
+        items: (category.subCategories || []).map(item => ({
+          name: item.name,
+          price: String(item.price),
+          image: item.image,
+          description: item.description,
+        })),
+      };
+      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        await fetchCategories();
+      }
+    } catch (err) {}
+    setLoading(false);
+  };
+
+  const deleteCategoryApi = async (categoryId) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category/${categoryId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await res.json();
+      if (data.status) {
+        await fetchCategories();
+      }
+    } catch (err) {}
+    setLoading(false);
+  };
+
   const handleBack = () => {
     setSelectedCategoryId(null);
     setEditTarget(null);
   };
 
-  const handleConfirmDelete = () => {
-    if (deleteModal.type === "sub") {
-      dispatch(
-        deleteSubCategory({
-          categoryId: deleteModal.categoryId,
-          subIndex: deleteModal.subIndex,
-        })
-      );
-    } else if (deleteModal.type === "category") {
-      dispatch(deleteCategory({ id: deleteModal.categoryId }));
+  const handleConfirmDelete = async () => {
+    if (deleteModal.type === "category") {
+      await deleteCategoryApi(deleteModal.categoryId);
       setSelectedCategoryId(null);
     }
     setDeleteModal({
@@ -117,50 +216,11 @@ const LiveOrder = () => {
     setSubCategoryEditData(null);
   };
 
-  const handleSave = (data, isEdit = false) => {
+  const handleSave = async (data, isEdit = false) => {
     if (isEdit) {
-      if (editTarget?.isSubCategory) {
-        // Editing a subcategory through the main modal
-        const categoryId = editTarget.categoryId || selectedCategoryId;
-        // In your edit handler:
-        dispatch(
-          editSubCategory({
-            categoryId: selectedCategory.id,
-            subIndex: selectedCategory.subCategories.findIndex(
-              (sub) => sub.id === editTarget.id
-            ),
-            name: data.name,
-            price: data.price,
-            id: editTarget.id,
-          })
-        );
-      } else {
-        // Editing a category
-        dispatch(
-          editCategory({
-            id: data.id,
-            name: data.name,
-            subCategories: data.subCategories, // Include updated subcategories
-          })
-        );
-      }
+      await updateCategory(data);
     } else {
-      if (editTarget?.isSubCategory) {
-        // Adding a new subcategory through the main modal
-        const categoryId = editTarget.categoryId || selectedCategoryId;
-        dispatch(
-          addSubCategory({
-            categoryId,
-            subCategory: {
-              ...data,
-              id: Date.now(),
-            },
-          })
-        );
-      } else {
-        // Adding a new category
-        dispatch(addCategory(data));
-      }
+      await createCategory(data);
     }
     setShowAddModal(false);
     setEditTarget(null);
@@ -169,7 +229,7 @@ const LiveOrder = () => {
   const filteredCategories = categories.filter((cat) => {
     if (!searchQuery.trim()) return true;
     const inCat = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const inSub = cat.subCategories.some((sub) =>
+    const inSub = (cat.item || []).some((sub) =>
       sub.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     return inCat || inSub;
@@ -223,11 +283,12 @@ const LiveOrder = () => {
               </div>
               <h5 className="mb-3">{selectedCategory.name}</h5>
               <div className="row">
-                {selectedCategory.subCategories
-                  .filter((item) =>
-                    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((item, index) => (
+                {(selectedCategory.item || []).length === 0 ? (
+                  <div className="col-12 text-center text-muted py-5">
+                    No items found
+                  </div>
+                ) : (
+                  (selectedCategory.item || []).map((item, index) => (
                     <div key={item.id} className="col-6 col-md-4 col-lg-3 mb-3">
                       <div className="border rounded pb-2 text-center shadow card-main position-relative">
                         {item.image && (
@@ -307,66 +368,70 @@ const LiveOrder = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ))
+                )}
               </div>
             </>
           ) : (
-            <div className="menu-main">
-              <div className="row">
-                {filteredCategories.map((cat) => (
-                  <div key={cat.id} className="col-6 col-md-4 col-lg-3 mb-3">
-                    <div
-                      className="position-relative border rounded pb-2 text-center shadow card-main d-flex align-items-center justify-content-center category-box flex-wrap"
-                      onClick={() => setSelectedCategoryId(cat.id)}
-                    >
-                      {cat.image && (
+            categories.length === 0 ? (
+              <div className="text-center text-muted py-5">
+                No categories found
+              </div>
+            ) : (
+              <div className="menu-main">
+                <div className="row">
+                  {filteredCategories.map((cat) => (
+                    <div key={cat.id} className="col-6 col-md-4 col-lg-3 mb-3">
+                      <div
+                        className="position-relative border rounded pb-2 text-center shadow card-main d-flex align-items-center justify-content-center category-box flex-wrap"
+                        onClick={() => setSelectedCategoryId(cat.id)}
+                      >
+                        {cat.image && (
+                          <div
+                            className="w-100 mb-2"
+                            style={{ height: "100px", overflow: "hidden" }}
+                          >
+                            <img
+                              src={cat.image}
+                              alt={cat.name}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          </div>
+                        )}
+                        <p className="mt-2 mb-0 w-100">{cat.name}</p>
+                        <button className="btn btn-outline-dark mt-2">
+                          View Menu
+                        </button>
                         <div
-                          className="w-100 mb-2"
-                          style={{ height: "100px", overflow: "hidden" }}
+                          className="position-absolute m-1 d-flex gap-2 icons-main"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <img
-                            src={cat.image}
-                            alt={cat.name}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
+                          <FaEdit
+                            className="text-primary cursor-pointer d-hover-inline"
+                            onClick={() => {
+                              setEditTarget(cat);
+                              setShowAddModal(true);
+                            }}
+                          />
+                          <FaTrash
+                            className="text-danger cursor-pointer d-hover-inline"
+                            onClick={async () => {
+                              await deleteCategoryApi(cat.id);
+                              setSelectedCategoryId(null);
+                              await fetchCategories();
                             }}
                           />
                         </div>
-                      )}
-                      <p className="mt-2 mb-0 w-100">{cat.name}</p>
-                      <button className="btn btn-outline-dark mt-2">
-                        View Menu
-                      </button>
-                      <div
-                        className="position-absolute m-1 d-flex gap-2 icons-main"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <FaEdit
-                          className="text-primary cursor-pointer d-hover-inline"
-                          onClick={() => {
-                            setEditTarget(cat);
-                            setShowAddModal(true);
-                          }}
-                        />
-                        <FaTrash
-                          className="text-danger cursor-pointer d-hover-inline"
-                          onClick={() =>
-                            setDeleteModal({
-                              show: true,
-                              type: "category",
-                              categoryId: cat.id,
-                              subIndex: null,
-                            })
-                          }
-                        />
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )
           )}
         </div>
 

@@ -69,7 +69,9 @@ export default function Login() {
   };
 
   const handleSelectBranch = (branch) => {
+    console.log("Branch ", branch);
     dispatch(setBranch(branch));
+    localStorage.setItem("selectedBranch", JSON.stringify(branch));
     navigate("/"); // Redirect after selecting branch
   };
 
