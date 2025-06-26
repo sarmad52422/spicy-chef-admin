@@ -19,6 +19,11 @@ const Checkout = () => {
 
   const [selectedPayment, setSelectedPayment] = useState("cash");
 
+  // Customer Info States
+  const [fullName, setFullName] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [postcode, setPostcode] = useState("");
+
   // Two separate modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAbandonModal, setShowAbandonModal] = useState(false);
@@ -54,16 +59,56 @@ const Checkout = () => {
       style={{ height: "100vh", overflow: "hidden" }}
     >
       <div className="row min-vh-100 align-items-stretch">
-        {/* Left: Payment Options */}
+        {/* Left: Customer Info & Payment Options */}
         <div className="col-12 col-lg-8 col-md-8 border-end py-4 pe-4">
           <h4>Checkout</h4>
+
+          {/* Customer Info Fields */}
+          <div className="mt-3">
+            <h5>Customer Information</h5>
+            <div className="row">
+            <div className="col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+              <label className="form-label">Full Name</label>
+              <input
+                type="text"
+                className="form-control"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your full name"
+              />
+            </div>
+            <div className="col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+              <label className="form-label">Mobile Number</label>
+              <input
+                type="tel"
+                className="form-control"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                placeholder="Enter mobile number"
+              />
+            </div>
+            <div className="col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+              <label className="form-label">Postcode</label>
+              <input
+                type="text"
+                className="form-control"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                placeholder="Enter postcode"
+              />
+            </div>
+            </div>
+          </div>
+
+          {/* Payment Options */}
           <div className="mt-4">
             <h5>Select Payment Method</h5>
-            <div className="d-flex flex-column gap-3">
+            <div className="row mt-4">
               {paymentOptions.map((option) => (
+                <div className="col-lg-3 col-md-3 col-sm-6 col-12">
                 <div
                   key={option.id}
-                  className={`p-3 border rounded ${
+                  className={`p-3 border text-center rounded ${
                     selectedPayment === option.id
                       ? "border-success bg-light"
                       : ""
@@ -72,6 +117,7 @@ const Checkout = () => {
                   onClick={() => setSelectedPayment(option.id)}
                 >
                   <strong>{option.label}</strong>
+                </div>
                 </div>
               ))}
             </div>
