@@ -118,6 +118,7 @@ const LiveOrder = () => {
         image: category.image,
         branch_id: selectedBranch.id,
         items: (category.subCategories || []).map(item => ({
+          id: item.id,
           name: item.name,
           price: String(item.price),
           image: item.image,

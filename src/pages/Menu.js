@@ -178,30 +178,31 @@ const Menu = () => {
   const updateCategory = async (category) => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("id", category.id);
-      formData.append("name", category.name);
-      if (category.image) formData.append("image", category.image);
-      // formData.append("branch_id", category.branch_id);
-      const items = (category.item || []).map((item) => {
-        const { image, ...rest } = item;
-        return rest;
-      });
-      formData.append("items", JSON.stringify(items));
-      (category.item || []).forEach((item, idx) => {
-        if (item.image) formData.append(`items_images`, item.image);
-      });
-
+      const payload = {
+        id: category.id,
+        name: category.name,
+        image: category.image,
+        branch_id: selectedBranch.id,
+        items: (category.subCategories || []).map(item => ({
+          id: item.id,
+          name: item.name,
+          price: String(item.price),
+          image: item.image,
+          description: item.description,
+        })),
+      };
       const res = await fetch(`${API_BASE_URL}/admin/category`, {
         method: "PUT",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: formData,
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.status) {
         setAlert({ type: "success", message: "Category updated successfully!" });
+        await fetchCategories();
       } else {
         let errorMsg = data.message || "Failed to update category";
         if (data.error && Array.isArray(data.error.errors)) {
@@ -238,47 +239,13 @@ const Menu = () => {
   };
 
   const handleSave = async (data, isEdit = false) => {
-    // Return a promise so modal can await
-    return new Promise(async (resolve) => {
-      if (isEdit) {
-        if (editTarget?.isSubCategory) {
-          dispatch(
-            editSubCategory({
-              categoryId: selectedCategory.id,
-              subIndex: (selectedCategory.item || []).findIndex(
-                (sub) => sub.id === editTarget.id
-              ),
-              name: data.name,
-              price: data.price,
-              id: editTarget.id,
-            })
-          );
-          resolve();
-        } else {
-          await updateCategory(data);
-          resolve();
-        }
-      } else {
-        if (editTarget?.isSubCategory) {
-          const categoryId = editTarget.categoryId || selectedCategoryId;
-          dispatch(
-            addSubCategory({
-              categoryId,
-              subCategory: {
-                ...data,
-                id: Date.now(),
-              },
-            })
-          );
-          resolve();
-        } else {
-          await createCategory(data);
-          resolve();
-        }
-      }
-      setShowAddModal(false);
-      setEditTarget(null);
-    });
+    if (isEdit) {
+      await updateCategory(data);
+    } else {
+      await createCategory(data);
+    }
+    setShowAddModal(false);
+    setEditTarget(null);
   };
 
   const filteredCategories = categories.filter((cat) => {
