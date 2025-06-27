@@ -187,34 +187,14 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
 
               <Form.Group className="mb-3 w-50">
                 <Form.Label className="text-end w-100">
-                  Category Image (Optional)
+                  Category Image URL (Required)
                 </Form.Label>
-                {categoryImage ? (
-                  <div className="d-flex align-items-center justify-content-end gap-2 mb-2">
-                    <img
-                      src={typeof categoryImage === "string" ? categoryImage : URL.createObjectURL(categoryImage)}
-                      alt="Preview"
-                      style={{
-                        width: "75px",
-                        height: "auto",
-                        objectFit: "cover",
-                      }}
-                    />
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      onClick={() => removeImage()}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <Form.Control
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange(e)}
-                  />
-                )}
+                <Form.Control
+                  type="text"
+                  value={categoryImage || ""}
+                  onChange={e => setCategoryImage(e.target.value)}
+                  placeholder="Enter image URL"
+                />
               </Form.Group>
             </Form.Group>
           )}
@@ -248,34 +228,14 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                   />
                 </Col>
                 <Col md={5}>
-                  <Form.Label>Item Image (Required)</Form.Label>
-                  {sub.image ? (
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <img
-                        src={typeof sub.image === "string" ? sub.image : URL.createObjectURL(sub.image)}
-                        alt="Preview"
-                        style={{
-                          width: "75px",
-                          height: "auto",
-                          objectFit: "cover",
-                        }}
-                      />
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => removeImage(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <Form.Control
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageChange(e, index)}
-                      required={!editData?.isSubCategory}
-                    />
-                  )}
+                  <Form.Label>Item Image URL (Required)</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={sub.image || ""}
+                    onChange={e => handleChangeSub(index, "image", e.target.value)}
+                    placeholder="Enter image URL"
+                    required={!editData?.isSubCategory}
+                  />
                 </Col>
                 <Col md={12}>
                   <Form.Control

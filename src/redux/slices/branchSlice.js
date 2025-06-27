@@ -4,11 +4,12 @@ import { createSlice } from "@reduxjs/toolkit";
 const branchSlice = createSlice({
   name: "branch",
   initialState: {
-    selectedBranch: null,
+    selectedBranch: JSON.parse(localStorage.getItem("selectedBranch")) || null,
   },
   reducers: {
     setBranch: (state, action) => {
       state.selectedBranch = action.payload;
+      localStorage.setItem("selectedBranch", JSON.stringify(action.payload));
     },
   },
 });
