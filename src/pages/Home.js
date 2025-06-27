@@ -1,11 +1,20 @@
 import React, { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Home = () => {
   const [show, setShow] = useState(false);
+  const navigate = useNavigate();
 
-  const handleOpen = () => setShow(true);
+  const handleOrderType = (type) => {
+    localStorage.setItem("orderType", type);
+    if (type === "IN-STORE") {
+      navigate("/live-order");
+    } else {
+      setShow(true);
+    }
+  };
+
   const handleClose = () => setShow(false);
 
   return (
@@ -17,18 +26,24 @@ const Home = () => {
               <div className="bg-danger text-white p-4 rounded flex-grow-1 text-center w-25">
                 <h4>In-Store Order</h4>
                 <i className="bi bi-cup-straw fs-1"></i>
+                <button
+                  className="btn btn-outline-light shadow-sm w-100 mt-3"
+                  onClick={() => handleOrderType("IN-STORE")}
+                >
+                  Start In-Store
+                </button>
               </div>
               <div className="bg-light p-4 rounded flex-grow-1 text-center">
                 <h4 className="text-warning">Phone Order</h4>
                 <button
                   className="btn btn-outline-dark shadow-sm w-100 my-2"
-                  onClick={handleOpen}
+                  onClick={() => handleOrderType("COLLECTION")}
                 >
                   Collection
                 </button>
                 <button
                   className="btn btn-outline-dark shadow-sm w-100"
-                  onClick={handleOpen}
+                  onClick={() => handleOrderType("DELIVERY")}
                 >
                   Delivery
                 </button>
@@ -75,7 +90,7 @@ const Home = () => {
             className="btn btn-outline-dark"
             onClick={() => {
               handleClose();
-              // trigger order start logic here
+              // orderType is already set
             }}
           >
             Start Order

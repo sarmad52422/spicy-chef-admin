@@ -1,38 +1,77 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Table } from "react-bootstrap";
 
 const PendingPayments = () => {
   const [activeTab, setActiveTab] = useState("pending");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const dummyData = {
-    pending: [
-      { name: "John Doe", date: "2025-06-22", amount: 25.0 },
-      { name: "Jane Smith", date: "2025-06-21", amount: 40.5 },
-    ],
-    card: [
-      { name: "Alice Johnson", date: "2025-06-20", amount: 60.0 },
-      { name: "Bob Brown", date: "2025-06-18", amount: 32.75 },
-    ],
-    cash: [
-      { name: "Charlie Davis", date: "2025-06-19", amount: 20.0 },
-    ],
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (data.status && Array.isArray(data.result?.data)) {
+          setOrders(data.result.data);
+        } else {
+          setOrders([]);
+          setError(data.message || "Failed to fetch orders");
+        }
+      } catch (err) {
+        setOrders([]);
+        setError("Failed to fetch orders");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const filterOrders = () => {
+    if (activeTab === "pending") {
+      return orders.filter(o => o.paymentStatus === "PENDING");
+    } else if (activeTab === "card") {
+      return orders.filter(o => o.paymentType === "CARD");
+    } else if (activeTab === "cash") {
+      return orders.filter(o => o.paymentType === "CASH");
+    }
+    return orders;
   };
 
   const renderTable = (data) => (
     <Table striped bordered hover responsive className="mt-4">
       <thead className="table-dark">
         <tr>
+          <th>Order ID</th>
           <th>Customer Name</th>
+          <th>Order Type</th>
+          <th>Payment Type</th>
+          <th>Address</th>
           <th>Date</th>
           <th>Amount (£)</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {data.map((item, idx) => (
-          <tr key={idx}>
-            <td>{item.name}</td>
-            <td>{item.date}</td>
-            <td>£{item.amount.toFixed(2)}</td>
+          <tr key={item.id || idx}>
+            <td>{item.orderId}</td>
+            <td>{item.fullName}</td>
+            <td>{item.orderType}</td>
+            <td>{item.paymentType}</td>
+            <td>{item.address}</td>
+            <td>{item.createdAt ? item.createdAt.slice(0, 10) : ''}</td>
+            <td>£{Number(item.totalAmount || 0).toFixed(2)}</td>
+            <td>{item.paymentStatus}</td>
           </tr>
         ))}
       </tbody>
@@ -72,9 +111,9 @@ const PendingPayments = () => {
       </div>
 
       {/* Table content based on active tab */}
-      {activeTab === "pending" && renderTable(dummyData.pending)}
-      {activeTab === "card" && renderTable(dummyData.card)}
-      {activeTab === "cash" && renderTable(dummyData.cash)}
+      {loading && <div>Loading orders...</div>}
+      {error && <div className="text-danger">{error}</div>}
+      {!loading && !error && renderTable(filterOrders())}
     </div>
   );
 };

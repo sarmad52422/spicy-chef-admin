@@ -73,12 +73,10 @@ const Menu = () => {
 
   const handleConfirmDelete = async () => {
     if (deleteModal.type === "sub") {
-      dispatch(
-        deleteSubCategory({
-          categoryId: deleteModal.categoryId,
-          subIndex: deleteModal.subIndex,
-        })
-      );
+      const item = (selectedCategory.item || [])[deleteModal.subIndex];
+      if (item && item.id) {
+        await deleteItemApi(item.id);
+      }
     } else if (deleteModal.type === "category") {
       await deleteCategoryApi(deleteModal.categoryId);
       setSelectedCategoryId(null);
@@ -101,29 +99,11 @@ const Menu = () => {
   //   setShowSubCategoryModal(true);
   // };
 
-  const handleSaveSubCategory = (data) => {
+  const handleSaveSubCategory = async (data) => {
     if (subCategoryEditData) {
-      dispatch(
-        editSubCategory({
-          categoryId: selectedCategoryId,
-          subIndex: (selectedCategory.item || []).findIndex(
-            (sub) => sub.id === subCategoryEditData.id
-          ),
-          name: data.name,
-          price: data.price,
-          id: subCategoryEditData.id,
-        })
-      );
+      await updateItemApi({ ...data, id: subCategoryEditData.id }, selectedCategoryId);
     } else {
-      dispatch(
-        addSubCategory({
-          categoryId: selectedCategoryId,
-          subCategory: {
-            ...data,
-            id: Date.now(),
-          },
-        })
-      );
+      await addItemApi(data, selectedCategoryId);
     }
     setShowSubCategoryModal(false);
     setSubCategoryEditData(null);
@@ -178,30 +158,31 @@ const Menu = () => {
   const updateCategory = async (category) => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("id", category.id);
-      formData.append("name", category.name);
-      if (category.image) formData.append("image", category.image);
-      // formData.append("branch_id", category.branch_id);
-      const items = (category.item || []).map((item) => {
-        const { image, ...rest } = item;
-        return rest;
-      });
-      formData.append("items", JSON.stringify(items));
-      (category.item || []).forEach((item, idx) => {
-        if (item.image) formData.append(`items_images`, item.image);
-      });
-
+      const payload = {
+        id: category.id,
+        name: category.name,
+        image: category.image,
+        branch_id: selectedBranch.id,
+        items: (category.subCategories || []).map(item => ({
+          id: item.id,
+          name: item.name,
+          price: String(item.price),
+          image: item.image,
+          description: item.description,
+        })),
+      };
       const res = await fetch(`${API_BASE_URL}/admin/category`, {
         method: "PUT",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: formData,
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.status) {
         setAlert({ type: "success", message: "Category updated successfully!" });
+        await fetchCategories();
       } else {
         let errorMsg = data.message || "Failed to update category";
         if (data.error && Array.isArray(data.error.errors)) {
@@ -237,48 +218,87 @@ const Menu = () => {
     }
   };
 
-  const handleSave = async (data, isEdit = false) => {
-    // Return a promise so modal can await
-    return new Promise(async (resolve) => {
-      if (isEdit) {
-        if (editTarget?.isSubCategory) {
-          dispatch(
-            editSubCategory({
-              categoryId: selectedCategory.id,
-              subIndex: (selectedCategory.item || []).findIndex(
-                (sub) => sub.id === editTarget.id
-              ),
-              name: data.name,
-              price: data.price,
-              id: editTarget.id,
-            })
-          );
-          resolve();
-        } else {
-          await updateCategory(data);
-          resolve();
-        }
+  const addItemApi = async (item, categoryId) => {
+    setLoading(true);
+    try {
+      const payload = {
+        ...item,
+        category_id: categoryId,
+      };
+      const res = await fetch(`${API_BASE_URL}/admin/category/item`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Item added successfully!" });
+        await fetchCategories();
       } else {
-        if (editTarget?.isSubCategory) {
-          const categoryId = editTarget.categoryId || selectedCategoryId;
-          dispatch(
-            addSubCategory({
-              categoryId,
-              subCategory: {
-                ...data,
-                id: Date.now(),
-              },
-            })
-          );
-          resolve();
-        } else {
-          await createCategory(data);
-          resolve();
-        }
+        setAlert({ type: "error", message: data.message || "Failed to add item" });
       }
-      setShowAddModal(false);
-      setEditTarget(null);
-    });
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateItemApi = async (item, categoryId) => {
+    setLoading(true);
+    try {
+      const payload = {
+        ...item,
+        category_id: categoryId,
+      };
+      const res = await fetch(`${API_BASE_URL}/admin/category/item/${item.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Item updated successfully!" });
+        await fetchCategories();
+      } else {
+        setAlert({ type: "error", message: data.message || "Failed to update item" });
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteItemApi = async (itemId) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/category/item/${itemId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Item deleted successfully!" });
+        await fetchCategories();
+      } else {
+        setAlert({ type: "error", message: data.message || "Failed to delete item" });
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (data, isEdit = false) => {
+    if (isEdit) {
+      await updateCategory(data);
+    } else {
+      await createCategory(data);
+    }
+    setShowAddModal(false);
+    setEditTarget(null);
   };
 
   const filteredCategories = categories.filter((cat) => {
@@ -486,6 +506,7 @@ const Menu = () => {
         }}
         onSave={handleSaveSubCategory}
         initialData={subCategoryEditData}
+        categoryId={selectedCategoryId}
       />
 
       <DeleteConfirmationModal

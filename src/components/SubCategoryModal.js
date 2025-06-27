@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
+import axios from 'axios';
 
 const SubCategoryModal = ({ 
   show, 
   onHide, 
   onSave, 
-  initialData = null 
+  initialData = null,
+  categoryId
 }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -28,16 +32,36 @@ const SubCategoryModal = ({
     }
   }, [initialData, show]);
 
-  // Define handleImageChange function
-  const handleImageChange = (e) => {
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    setUploading(true);
+    try {
+      const res = await axios.post('https://api.eatmeonline.co.uk/api/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data.status && res.data.result?.data) {
+        return res.data.result.data;
+      } else {
+        alert('Image upload failed');
+        return null;
+      }
+    } catch (err) {
+      alert('Image upload failed');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      const url = await uploadImage(file);
+      if (url) {
+        setPreview(url);
+        setImage(file);
+      }
     }
   };
 
@@ -47,24 +71,32 @@ const SubCategoryModal = ({
     setPreview('');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) {
       alert('Item name is required');
       return;
     }
-    
     if (!preview) {
       alert('Item image is required');
       return;
     }
-
-    onSave({ 
-      name: name.trim(), 
-      price: price === '' ? 0 : Number(price),
+    // Only collect data and call onSave, do not make API calls here
+    const payload = {
+      name: name.trim(),
+      price: price === '' ? '0' : String(price),
       description: description.trim(),
       image: preview,
-      ...(initialData?.id && { id: initialData.id })
-    });
+      category_id: categoryId,
+      ...(initialData && initialData.id ? { id: initialData.id } : {}),
+    };
+    onSave && onSave(payload);
+    onHide();
+  };
+
+  const handleDelete = () => {
+    if (!initialData?.id) return;
+    // Only notify parent to delete, do not make API call here
+    onSave && onSave({ deleted: true, id: initialData.id });
     onHide();
   };
 
@@ -147,15 +179,24 @@ const SubCategoryModal = ({
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
+        <Button variant="secondary" onClick={onHide} disabled={saving || uploading}>
           Cancel
         </Button>
+        {initialData && initialData.id && (
+          <Button
+            variant="danger"
+            onClick={handleDelete}
+            disabled={uploading}
+          >
+            Delete
+          </Button>
+        )}
         <Button
           variant="primary"
           onClick={handleSubmit}
-          disabled={!name.trim() || !preview}
+          disabled={!name.trim() || !preview || uploading}
         >
-          {initialData ? 'Save Changes' : 'Add Item'}
+          {uploading ? 'Saving...' : initialData ? 'Save Changes' : 'Add Item'}
         </Button>
       </Modal.Footer>
     </Modal>
