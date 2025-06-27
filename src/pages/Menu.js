@@ -73,12 +73,10 @@ const Menu = () => {
 
   const handleConfirmDelete = async () => {
     if (deleteModal.type === "sub") {
-      dispatch(
-        deleteSubCategory({
-          categoryId: deleteModal.categoryId,
-          subIndex: deleteModal.subIndex,
-        })
-      );
+      const item = (selectedCategory.item || [])[deleteModal.subIndex];
+      if (item && item.id) {
+        await deleteItemApi(item.id);
+      }
     } else if (deleteModal.type === "category") {
       await deleteCategoryApi(deleteModal.categoryId);
       setSelectedCategoryId(null);
@@ -101,29 +99,11 @@ const Menu = () => {
   //   setShowSubCategoryModal(true);
   // };
 
-  const handleSaveSubCategory = (data) => {
+  const handleSaveSubCategory = async (data) => {
     if (subCategoryEditData) {
-      dispatch(
-        editSubCategory({
-          categoryId: selectedCategoryId,
-          subIndex: (selectedCategory.item || []).findIndex(
-            (sub) => sub.id === subCategoryEditData.id
-          ),
-          name: data.name,
-          price: data.price,
-          id: subCategoryEditData.id,
-        })
-      );
+      await updateItemApi({ ...data, id: subCategoryEditData.id }, selectedCategoryId);
     } else {
-      dispatch(
-        addSubCategory({
-          categoryId: selectedCategoryId,
-          subCategory: {
-            ...data,
-            id: Date.now(),
-          },
-        })
-      );
+      await addItemApi(data, selectedCategoryId);
     }
     setShowSubCategoryModal(false);
     setSubCategoryEditData(null);
@@ -230,6 +210,79 @@ const Menu = () => {
         // Optionally refresh categories from API here
       } else {
         throw new Error(data.message || "Failed to delete category");
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addItemApi = async (item, categoryId) => {
+    setLoading(true);
+    try {
+      const payload = {
+        ...item,
+        category_id: categoryId,
+      };
+      const res = await fetch(`${API_BASE_URL}/admin/category/item`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Item added successfully!" });
+        await fetchCategories();
+      } else {
+        setAlert({ type: "error", message: data.message || "Failed to add item" });
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateItemApi = async (item, categoryId) => {
+    setLoading(true);
+    try {
+      const payload = {
+        ...item,
+        category_id: categoryId,
+      };
+      const res = await fetch(`${API_BASE_URL}/admin/category/item/${item.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Item updated successfully!" });
+        await fetchCategories();
+      } else {
+        setAlert({ type: "error", message: data.message || "Failed to update item" });
+      }
+    } catch (err) {
+      setAlert({ type: "error", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteItemApi = async (itemId) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/category/item/${itemId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setAlert({ type: "success", message: "Item deleted successfully!" });
+        await fetchCategories();
+      } else {
+        setAlert({ type: "error", message: data.message || "Failed to delete item" });
       }
     } catch (err) {
       setAlert({ type: "error", message: err.message });
@@ -453,6 +506,7 @@ const Menu = () => {
         }}
         onSave={handleSaveSubCategory}
         initialData={subCategoryEditData}
+        categoryId={selectedCategoryId}
       />
 
       <DeleteConfirmationModal

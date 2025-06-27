@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FaTrash } from "react-icons/fa";
 import {
@@ -8,6 +8,7 @@ import {
   clearCart,
 } from "../redux/slices/cartSlice";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import { useNavigate } from "react-router-dom";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -23,17 +24,30 @@ const Checkout = () => {
   const [fullName, setFullName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [postcode, setPostcode] = useState("");
+  const [address, setAddress] = useState("");
 
   // Two separate modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAbandonModal, setShowAbandonModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
+  const [orderType, setOrderType] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
   const paymentOptions = [
     { id: "cash", label: "Cash" },
     { id: "card", label: "Card" },
     { id: "textToPay", label: "Text to Pay" },
   ];
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const type = localStorage.getItem("orderType") || "";
+    setOrderType(type);
+  }, []);
 
   const handleDeleteClick = (item) => {
     setItemToDelete(item);
@@ -51,6 +65,61 @@ const Checkout = () => {
   const handleCancelOrder = () => {
     dispatch(clearCart());
     setShowAbandonModal(false);
+  };
+
+  const handleOrderNow = async () => {
+    setSuccess("");
+    setError("");
+    // Frontend validation
+    if (!fullName.trim()) {
+      setError("Full Name is required");
+      return;
+    }
+    if (!mobileNumber.trim()) {
+      setError("Mobile Number is required");
+      return;
+    }
+    if (!postcode.trim()) {
+      setError("Postcode is required");
+      return;
+    }
+    if (!address.trim()) {
+      setError("Address is required");
+      return;
+    }
+    if (!cartItems.length) {
+      setError("Cart is empty");
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = {
+        orderType: orderType || "IN-STORE",
+        paymentType: selectedPayment.toUpperCase(),
+        fullName,
+        address,
+        phoneNo: mobileNumber,
+        postCode: postcode,
+        items: cartItems.map(item => ({ id: item.id, quantity: item.quantity })),
+      };
+      const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setSuccess("Order placed successfully!");
+        dispatch(clearCart());
+        navigate("/pending-payments");
+      } else {
+        setError(data.message || "Failed to place order");
+      }
+    } catch (err) {
+      setError("Failed to place order");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -95,6 +164,16 @@ const Checkout = () => {
                 value={postcode}
                 onChange={(e) => setPostcode(e.target.value)}
                 placeholder="Enter postcode"
+              />
+            </div>
+            <div className="col-lg-6 col-md-6 col-sm-6 col-12 mb-3">
+              <label className="form-label">Address</label>
+              <input
+                type="text"
+                className="form-control"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter address"
               />
             </div>
             </div>
@@ -177,12 +256,16 @@ const Checkout = () => {
               </button>
               <button
                 className="btn btn-success flex-fill"
-                disabled={cartItems.length === 0}
+                disabled={cartItems.length === 0 || loading}
+                onClick={handleOrderNow}
               >
-                Order Now
+                {loading ? "Placing Order..." : "Order Now"}
               </button>
             </div>
           </div>
+
+          {success && <div className="alert alert-success mt-2">{success}</div>}
+          {error && <div className="alert alert-danger mt-2">{error}</div>}
         </div>
       </div>
 
