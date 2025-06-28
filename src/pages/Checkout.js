@@ -94,13 +94,16 @@ const Checkout = () => {
     setLoading(true);
     try {
       const payload = {
-        orderType: orderType || "IN-STORE",
+        orderType: orderType || "COLLECTION",
         paymentType: selectedPayment.toUpperCase(),
         fullName,
         address,
         phoneNo: mobileNumber,
         postCode: postcode,
-        items: cartItems.map(item => ({ id: item.id, quantity: item.quantity })),
+        items: cartItems.map(item => {
+          // Always send variationId: use item.variationId if present, otherwise use item.id
+          return { variationId: item.variationId || item.id, quantity: item.quantity };
+        }),
       };
       const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
         method: "POST",

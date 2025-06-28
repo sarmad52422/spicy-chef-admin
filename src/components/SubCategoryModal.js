@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 const SubCategoryModal = ({ 
   show, 
@@ -107,12 +108,18 @@ const SubCategoryModal = ({
       description: description.trim(),
       image: preview,
       category_id: categoryId,
-      variations: variations
-        .filter(v => v.name.trim())
-        .map(v => ({
-          name: v.name.trim(),
-          price: v.price === '' ? '0' : String(v.price),
-        })),
+      variation: (
+        variations.filter(v => v.name.trim() && v.price !== '' && v.price !== undefined).length > 0
+          ? variations.filter(v => v.name.trim() && v.price !== '' && v.price !== undefined).map(v => ({
+              ...v,
+              id: v.id || uuidv4(),
+            }))
+          : [{
+              id: uuidv4(),
+              name: name.trim(),
+              price: price === '' ? '0' : String(price)
+            }]
+      ),
       ...(initialData && initialData.id ? { id: initialData.id } : {}),
     };
 

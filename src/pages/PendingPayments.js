@@ -57,8 +57,9 @@ const PendingPayments = () => {
           <th>Payment Type</th>
           <th>Address</th>
           <th>Date</th>
-          <th>Amount (£)</th>
+          <th>Amount</th>
           <th>Status</th>
+          <th>Items</th>
         </tr>
       </thead>
       <tbody>
@@ -70,8 +71,21 @@ const PendingPayments = () => {
             <td>{item.paymentType}</td>
             <td>{item.address}</td>
             <td>{item.createdAt ? item.createdAt.slice(0, 10) : ''}</td>
-            <td>£{Number(item.totalAmount || 0).toFixed(2)}</td>
+            <td>{Number(item.totalAmount || 0).toFixed(2)}</td>
             <td>{item.paymentStatus}</td>
+            <td>
+              {Array.isArray(item.items) && item.items.length > 0 ? (
+                item.items.map((orderItem, i) => (
+                  <div key={orderItem.id || i} style={{ marginBottom: 4 }}>
+                    <span><b>Qty:</b> {orderItem.quantity}</span>{' '}
+                    <span><b>Name:</b> {orderItem.variation?.name || '-'}</span>{' '}
+                    <span><b>Price:</b> £{orderItem.variation?.price || '-'}</span>
+                  </div>
+                ))
+              ) : (
+                <span>-</span>
+              )}
+            </td>
           </tr>
         ))}
       </tbody>

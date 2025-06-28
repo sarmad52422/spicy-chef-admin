@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import axios from "axios";
+import { v4 as uuidv4 } from 'uuid';
 
 const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const [categoryName, setCategoryName] = useState("");
@@ -213,8 +214,17 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
         id: sc.id || Date.now() + Math.random(),
         image: sc.image,
         description: sc.description || "",
-        variations: (sc.variations || []).filter(
-          (v) => v.name.trim() || v.price
+        variation: (
+          (sc.variations || []).filter(v => v.name.trim() && v.price !== '' && v.price !== undefined).length > 0
+            ? (sc.variations || []).filter(v => v.name.trim() && v.price !== '' && v.price !== undefined).map(v => ({
+                ...v,
+                id: v.id || uuidv4(),
+              }))
+            : [{
+                id: uuidv4(),
+                name: sc.name.trim(),
+                price: sc.price === "" ? 0 : Number(sc.price)
+              }]
         ),
       }));
 
