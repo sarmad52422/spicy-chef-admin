@@ -5,7 +5,7 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import LiveOrder from "./pages/LiveOrder";
 import PendingPayments from "./pages/PendingPayments";
-import TextToPay from "./pages/TextToPay";
+import Modifier from "./pages/Modifier";
 import Menu from "./pages/Menu";
 import Checkout from "./pages/Checkout";
 import { useDispatch } from "react-redux";
@@ -40,7 +40,7 @@ function App() {
               <Route path="/menu" element={<Menu />} />
               <Route path="/live-order" element={<LiveOrder />} />
               <Route path="/pending-payments" element={<PendingPayments />} />
-              <Route path="/text-to-pay" element={<TextToPay />} />
+              <Route path="/modifier" element={<Modifier />} />
               <Route path="/checkout" element={<Checkout />} />
             </Routes>
           </PrivateRoute>
