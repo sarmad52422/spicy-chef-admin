@@ -124,9 +124,13 @@ const Menu = () => {
         branch_id: selectedBranch.id,
         items: (category.subCategories || []).map(item => ({
           name: item.name,
-          price: String(item.price), // ensure price is a string
-          image: item.image, // should be a URL string
+          price: String(item.price),
+          image: item.image,
           description: item.description,
+          variation: (item.variations || item.variation || []).filter(v => v.name && v.price).map(v => ({
+            name: v.name,
+            price: String(v.price),
+          })),
         })),
       };
       const res = await fetch(`${API_BASE_URL}/admin/category`, {
@@ -169,6 +173,10 @@ const Menu = () => {
           price: String(item.price),
           image: item.image,
           description: item.description,
+          variation: (item.variations || item.variation || []).filter(v => v.name && v.price).map(v => ({
+            name: v.name,
+            price: String(v.price),
+          })),
         })),
       };
       const res = await fetch(`${API_BASE_URL}/admin/category`, {
@@ -392,6 +400,19 @@ const Menu = () => {
                             }}
                           >
                             <small>{item.description}</small>
+                          </div>
+                        )}
+                        {/* Show variations if present */}
+                        {Array.isArray(item.variation) && item.variation.length > 0 && (
+                          <div className="mb-2">
+                            <strong>Variations:</strong>
+                            <ul className="list-unstyled mb-0">
+                              {item.variation.map((v) => (
+                                <li key={v.id || v.name}>
+                                  <span>{v.name}</span>: <span>£ {v.price}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
                         <div className="hover-icons position-absolute m-1 d-flex gap-2 icons-main">

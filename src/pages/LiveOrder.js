@@ -20,6 +20,7 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import AddCategoryModal from "../components/AddCategoryModal";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SubCategoryModal from "../components/SubCategoryModal";
+import VariationSelectModal from "../components/VariationSelectModal";
 
 const LiveOrder = () => {
   const dispatch = useDispatch();
@@ -48,6 +49,9 @@ const LiveOrder = () => {
     categoryId: null,
     subIndex: null,
   });
+  const [showVariationModal, setShowVariationModal] = useState(false);
+  const [variationOptions, setVariationOptions] = useState([]);
+  const [variationItem, setVariationItem] = useState(null);
 
   const selectedCategory = categories.find(
     (cat) => cat.id === selectedCategoryId
@@ -91,6 +95,10 @@ const LiveOrder = () => {
           price: String(item.price),
           image: item.image,
           description: item.description,
+          variation: (item.variations || item.variation || []).filter(v => v.name && v.price).map(v => ({
+            name: v.name,
+            price: String(v.price),
+          })),
         })),
       };
       const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
@@ -123,6 +131,10 @@ const LiveOrder = () => {
           price: String(item.price),
           image: item.image,
           description: item.description,
+          variation: (item.variations || item.variation || []).filter(v => v.name && v.price).map(v => ({
+            name: v.name,
+            price: String(v.price),
+          })),
         })),
       };
       const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
@@ -331,13 +343,20 @@ const LiveOrder = () => {
                         <button
                           className="btn btn-outline-dark mt-3"
                           onClick={() => {
-                            dispatch(
-                              addToCart({
-                                id: item.id,
-                                name: item.name,
-                                price: item.price,
-                              })
-                            );
+                            const variations = item.variation || item.variations;
+                            if (variations && variations.length > 0 && variations.some(v => v.name)) {
+                              setVariationOptions(variations.filter(v => v.name));
+                              setVariationItem(item);
+                              setShowVariationModal(true);
+                            } else {
+                              dispatch(
+                                addToCart({
+                                  id: item.id,
+                                  name: item.name,
+                                  price: item.price,
+                                })
+                              );
+                            }
                           }}
                         >
                           Add to Cart
@@ -555,6 +574,26 @@ const LiveOrder = () => {
           setShowAbandonModal(false);
         }}
         itemName="the entire order"
+      />
+
+      <VariationSelectModal
+        show={showVariationModal}
+        onHide={() => setShowVariationModal(false)}
+        options={variationOptions}
+        item={variationItem}
+        onSelect={(variation) => {
+          if (variationItem) {
+            dispatch(
+              addToCart({
+                id: variation.id,
+                name: `${variationItem.name} - ${variation.name}`,
+                price: variation.price,
+                variationId: variation.id,
+              })
+            );
+          }
+          setShowVariationModal(false);
+        }}
       />
     </div>
   );
