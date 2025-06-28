@@ -39,14 +39,14 @@ const Navbar = () => {
     <>
       <div className="container-fluid">
         <div className="row">
-          <div className="col-12 col-lg-8 col-md-8 border-bottom border-end">
+          <div className="col-12 col-lg-12 col-md-12 border-bottom">
             <nav className="d-flex align-items-center justify-content-between px-1 py-3">
               <div className="d-flex gap-2 flex-wrap">
                 <Link to="/" className="btn btn-outline-dark">🏠 Home</Link>
                 <Link to="/menu" className="btn btn-outline-dark">Menu</Link>
                 <Link to="/live-order" className="btn btn-outline-dark">Live Order</Link>
                 <Link to="/pending-payments" className="btn btn-outline-dark">All Payments</Link>
-                <Link to="/text-to-pay" className="btn btn-outline-dark">Text to Pay Links</Link>
+                <Link to="/modifier" className="btn btn-outline-dark">Modifier</Link>
               </div>
               <div className="d-flex align-items-center gap-3 text-muted">
                 <span
@@ -63,14 +63,14 @@ const Navbar = () => {
               </div>
             </nav>
           </div>
-          <div className="col-12 col-lg-4 col-md-4 border-bottom">
+          {/* <div className="col-12 col-lg-4 col-md-4 border-bottom">
             <div className="d-flex gap-2 flex-wrap my-3">
               <button className="btn btn-light shadow-sm rounded-pill">0 All</button>
               <button className="btn btn-light shadow-sm rounded-pill">0 In-Store</button>
               <button className="btn btn-light shadow-sm rounded-pill">0 Collection</button>
               <button className="btn btn-light shadow-sm rounded-pill">0 Delivery</button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 

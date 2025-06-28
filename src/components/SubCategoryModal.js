@@ -16,6 +16,9 @@ const SubCategoryModal = ({
   const [preview, setPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [variations, setVariations] = useState([
+    { name: '', price: '' },
+  ]);
 
   useEffect(() => {
     if (initialData) {
@@ -23,12 +26,14 @@ const SubCategoryModal = ({
       setPrice(initialData.price !== undefined ? String(initialData.price) : '');
       setDescription(initialData.description || '');
       setPreview(initialData.image || '');
+      setVariations(initialData.variations || [{ name: '', price: '' }]);
     } else {
       setName('');
       setPrice('');
       setDescription('');
       setImage(null);
       setPreview('');
+      setVariations([{ name: '', price: '' }]);
     }
   }, [initialData, show]);
 
@@ -65,10 +70,25 @@ const SubCategoryModal = ({
     }
   };
 
-  // Define removeImage function
   const removeImage = () => {
     setImage(null);
     setPreview('');
+  };
+
+  const handleVariationChange = (index, field, value) => {
+    const updated = variations.map((v, i) =>
+      i === index ? { ...v, [field]: value } : v
+    );
+    setVariations(updated);
+  };
+
+  const addVariation = () => {
+    setVariations([...variations, { name: '', price: '' }]);
+  };
+
+  const removeVariation = (index) => {
+    const updated = variations.filter((_, i) => i !== index);
+    setVariations(updated.length ? updated : [{ name: '', price: '' }]);
   };
 
   const handleSubmit = async () => {
@@ -80,22 +100,28 @@ const SubCategoryModal = ({
       alert('Item image is required');
       return;
     }
-    // Only collect data and call onSave, do not make API calls here
+
     const payload = {
       name: name.trim(),
       price: price === '' ? '0' : String(price),
       description: description.trim(),
       image: preview,
       category_id: categoryId,
+      variations: variations
+        .filter(v => v.name.trim())
+        .map(v => ({
+          name: v.name.trim(),
+          price: v.price === '' ? '0' : String(v.price),
+        })),
       ...(initialData && initialData.id ? { id: initialData.id } : {}),
     };
+
     onSave && onSave(payload);
     onHide();
   };
 
   const handleDelete = () => {
     if (!initialData?.id) return;
-    // Only notify parent to delete, do not make API call here
     onSave && onSave({ deleted: true, id: initialData.id });
     onHide();
   };
@@ -175,6 +201,50 @@ const SubCategoryModal = ({
                 </Form.Text>
               </>
             )}
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Variations</Form.Label>
+            {variations.map((variation, index) => (
+              <Row key={index} className="mb-2 g-2 align-items-center">
+                <Col md={6}>
+                  <Form.Control
+                    placeholder="Variation Name"
+                    value={variation.name}
+                    onChange={(e) => handleVariationChange(index, 'name', e.target.value)}
+                  />
+                </Col>
+                <Col md={4}>
+                  <Form.Control
+                    type="number"
+                    placeholder="Price"
+                    value={variation.price}
+                    onChange={(e) => handleVariationChange(index, 'price', e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </Col>
+                <Col md={2}>
+                  {variations.length > 1 && (
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => removeVariation(index)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Col>
+              </Row>
+            ))}
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={addVariation}
+              className="mt-2"
+            >
+              + Add Variation
+            </Button>
           </Form.Group>
         </Form>
       </Modal.Body>

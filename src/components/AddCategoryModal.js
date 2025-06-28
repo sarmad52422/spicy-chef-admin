@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
-import { useDispatch } from "react-redux";
-import { addCategory, editCategory } from "../redux/slices/menuSlice";
 import axios from "axios";
 
 const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
-  const dispatch = useDispatch();
   const [categoryName, setCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState(null);
   const [subCategories, setSubCategories] = useState([
-    { name: "", price: "", id: Date.now(), image: null, description: "" },
+    {
+      name: "",
+      price: "",
+      id: Date.now(),
+      image: null,
+      description: "",
+      variations: [{ name: "", price: "" }],
+    },
   ]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -25,6 +29,8 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
             price: editData.price !== undefined ? String(editData.price) : "",
             id: editData.id || Date.now(),
             image: editData.image || null,
+            description: editData.description || "",
+            variations: editData.variations || [{ name: "", price: "" }],
           },
         ]);
       } else {
@@ -37,14 +43,34 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                 price: sub.price !== undefined ? String(sub.price) : "",
                 id: sub.id || Date.now() + Math.random(),
                 image: sub.image || null,
+                description: sub.description || "",
+                variations: sub.variations || [{ name: "", price: "" }],
               }))
-            : [{ name: "", price: "", id: Date.now(), image: null }]
+            : [
+                {
+                  name: "",
+                  price: "",
+                  id: Date.now(),
+                  image: null,
+                  description: "",
+                  variations: [{ name: "", price: "" }],
+                },
+              ]
         );
       }
     } else {
       setCategoryName("");
       setCategoryImage(null);
-      setSubCategories([{ name: "", price: "", id: Date.now(), image: null }]);
+      setSubCategories([
+        {
+          name: "",
+          price: "",
+          id: Date.now(),
+          image: null,
+          description: "",
+          variations: [{ name: "", price: "" }],
+        },
+      ]);
     }
   }, [editData, show]);
 
@@ -53,9 +79,13 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     formData.append("file", file);
     setUploading(true);
     try {
-      const res = await axios.post("https://api.eatmeonline.co.uk/api/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axios.post(
+        "https://api.eatmeonline.co.uk/api/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
       if (res.data.status && res.data.result?.data) {
         return res.data.result.data;
       } else {
@@ -76,12 +106,9 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       const url = await uploadImage(file);
       if (url) {
         if (index !== null) {
-          const updated = subCategories.map((sub, i) => {
-            if (i === index) {
-              return { ...sub, image: url };
-            }
-            return sub;
-          });
+          const updated = subCategories.map((sub, i) =>
+            i === index ? { ...sub, image: url } : sub
+          );
           setSubCategories(updated);
         } else {
           setCategoryImage(url);
@@ -90,100 +117,121 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     }
   };
 
-  const removeImage = (index = null) => {
-    if (index !== null) {
-      const updated = subCategories.map((sub, i) => {
-        if (i === index) {
-          return { ...sub, image: null };
-        }
-        return sub;
-      });
-      setSubCategories(updated);
-    } else {
-      setCategoryImage(null);
-    }
-  };
-
   const handleChangeSub = (index, field, value) => {
-    const updated = subCategories.map((sub, i) => {
-      if (i === index) {
-        return { ...sub, [field]: value };
-      }
-      return sub;
-    });
+    const updated = subCategories.map((sub, i) =>
+      i === index ? { ...sub, [field]: value } : sub
+    );
     setSubCategories(updated);
   };
 
   const addSubField = () => {
     setSubCategories([
       ...subCategories,
-      { name: "", price: "", id: Date.now() + Math.random(), image: null },
+      {
+        name: "",
+        price: "",
+        id: Date.now() + Math.random(),
+        image: null,
+        description: "",
+        variations: [{ name: "", price: "" }],
+      },
     ]);
   };
 
   const removeSubField = (index) => {
-    console.log("Removing subcategory at index:", index);
     const updated = subCategories.filter((_, i) => i !== index);
     setSubCategories(
       updated.length
         ? updated
-        : [{ name: "", price: "", id: Date.now(), image: null }]
+        : [
+            {
+              name: "",
+              price: "",
+              id: Date.now(),
+              image: null,
+              description: "",
+              variations: [{ name: "", price: "" }],
+            },
+          ]
     );
   };
 
+  const handleVariationChange = (subIndex, varIndex, field, value) => {
+    const updated = subCategories.map((sub, i) => {
+      if (i === subIndex) {
+        const updatedVars = sub.variations.map((v, j) =>
+          j === varIndex ? { ...v, [field]: value } : v
+        );
+        return { ...sub, variations: updatedVars };
+      }
+      return sub;
+    });
+    setSubCategories(updated);
+  };
+
+  const addVariationField = (subIndex) => {
+    const updated = subCategories.map((sub, i) => {
+      if (i === subIndex) {
+        return {
+          ...sub,
+          variations: [...sub.variations, { name: "", price: "" }],
+        };
+      }
+      return sub;
+    });
+    setSubCategories(updated);
+  };
+
+  const removeVariationField = (subIndex, varIndex) => {
+    const updated = subCategories.map((sub, i) => {
+      if (i === subIndex) {
+        const newVars = sub.variations.filter((_, j) => j !== varIndex);
+        return {
+          ...sub,
+          variations: newVars.length ? newVars : [{ name: "", price: "" }],
+        };
+      }
+      return sub;
+    });
+    setSubCategories(updated);
+  };
+
   const handleSubmit = async () => {
-    if (editData?.isSubCategory) {
-      if (!subCategories[0].image) {
-        alert("Item image is required");
-        return;
-      }
-      const updatedSub = {
-        name: subCategories[0].name.trim(),
-        price:
-          subCategories[0].price === "" ? 0 : Number(subCategories[0].price),
-        id: editData.id,
-        image: subCategories[0].image,
-        description: subCategories[0].description || "",
-      };
+    const hasInvalidSubs = subCategories.some(
+      (sc) => sc.name.trim() && !sc.image
+    );
+    if (hasInvalidSubs) {
+      alert("All menu items must have an image");
+      return;
+    }
 
-      setLoading(true);
-      try {
-        await onSave({ ...editData, ...updatedSub }, true);
-        onHide();
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      const hasInvalidSubs = subCategories.some(
-        (sc) => sc.name.trim() && !sc.image
-      );
+    const validSubs = subCategories
+      .filter((sc) => sc.name.trim())
+      .map((sc) => ({
+        name: sc.name.trim(),
+        price: sc.price === "" ? 0 : Number(sc.price),
+        id: sc.id || Date.now() + Math.random(),
+        image: sc.image,
+        description: sc.description || "",
+        variations: (sc.variations || []).filter(
+          (v) => v.name.trim() || v.price
+        ),
+      }));
 
-      if (hasInvalidSubs) {
-        alert("All menu items must have an image");
-        return;
-      }
-
-      const validSubs = subCategories
-        .filter((sc) => sc.name.trim())
-        .map((sc) => ({
-          name: sc.name.trim(),
-          price: sc.price === "" ? 0 : Number(sc.price),
-          id: sc.id || Date.now() + Math.random(),
-          image: sc.image,
-          description: sc.description || "",
-        }));
-
-      setLoading(true);
-      try {
+    setLoading(true);
+    try {
+      if (editData?.isSubCategory) {
+        await onSave({ ...editData, ...validSubs[0] }, true);
+      } else {
         await onSave({
           name: categoryName.trim(),
           image: categoryImage,
           subCategories: validSubs,
         });
-        onHide();
-      } finally {
-        setLoading(false);
       }
+      onHide();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,129 +249,135 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       <Modal.Body>
         <Form>
           {!editData?.isSubCategory && (
-            <Form.Group className="d-flex gap-2 align-items-center justify-content-between">
-              <Form.Group className="mb-3 w-50">
+            <>
+              <Form.Group className="mb-3">
                 <Form.Label>Category Name</Form.Label>
                 <Form.Control
                   type="text"
                   value={categoryName}
                   onChange={(e) => setCategoryName(e.target.value)}
-                  placeholder="Enter category name"
                 />
               </Form.Group>
-
-              <Form.Group className="mb-3 w-50">
-                <Form.Label className="text-end w-100">
-                  Category Image URL (Required)
-                </Form.Label>
-                <div className="d-flex align-items-center gap-2">
-                  <Form.Control
-                    type="text"
-                    className="d-none"
-                    value={categoryImage || ""}
-                    onChange={e => setCategoryImage(e.target.value)}
-                    placeholder="Enter image URL"
-                    disabled={uploading}
-                  />
-                  <Form.Control
-                    type="file"
-                    accept="image/*"
-                    onChange={e => handleImageFileChange(e, null)}
-                    disabled={uploading}
-                    style={{ width: "auto" }}
-                  />
-                </div>
+              <Form.Group className="mb-3">
+                <Form.Label>Category Image</Form.Label>
+                <Form.Control
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageFileChange(e)}
+                  disabled={uploading}
+                />
               </Form.Group>
-            </Form.Group>
+            </>
           )}
-
-          <Form.Label>
-            {editData?.isSubCategory ? "Item Details" : "Menu Items"}
-          </Form.Label>
-
+          <h5>Menu Item</h5>
           {subCategories.map((sub, index) => (
-            <div key={sub.id} className="mb-3 border p-3 rounded">
-              <Row className="g-2 align-items-center">
-                <Col md={3}>
+            <div key={sub.id} className="border p-3 rounded mb-4">
+              <Row className="mb-2 g-2">
+                <Col md={4}>
                   <Form.Control
-                    placeholder="Item name"
+                    placeholder="Item Name"
                     value={sub.name}
                     onChange={(e) =>
                       handleChangeSub(index, "name", e.target.value)
                     }
                   />
                 </Col>
-                <Col md={2}>
+                <Col md={3}>
                   <Form.Control
-                    type="number"
                     placeholder="Price"
+                    type="number"
                     value={sub.price}
                     onChange={(e) =>
                       handleChangeSub(index, "price", e.target.value)
                     }
-                    min="0"
-                    step="0.01"
                   />
                 </Col>
                 <Col md={5}>
-                  <Form.Label>Item Image URL (Required)</Form.Label>
-                  <div className="d-flex align-items-center gap-2">
-                    <Form.Control
-                      type="text"
-                      value={sub.image || ""}
-                      onChange={e => handleChangeSub(index, "image", e.target.value)}
-                      placeholder="Enter image URL"
-                      required={!editData?.isSubCategory}
-                      disabled={uploading}
-                      className="d-none"
-                    />
-                    <Form.Control
-                      type="file"
-                      accept="image/*"
-                      onChange={e => handleImageFileChange(e, index)}
-                      disabled={uploading}
-                      style={{ width: "auto" }}
-                    />
-                  </div>
-                </Col>
-                <Col md={12}>
                   <Form.Control
-                    as="textarea"
-                    rows={2}
-                    placeholder="Item description"
-                    value={sub.description || ""}
-                    onChange={(e) =>
-                      handleChangeSub(index, "description", e.target.value)
-                    }
-                    className="mt-2"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageFileChange(e, index)}
+                    disabled={uploading}
                   />
                 </Col>
-                <Col md={2}>
-                  {subCategories.length > 1 && (
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      className="w-100"
-                      onClick={() => removeSubField(index)}
-                      disabled={uploading}
-                    >
-                      Remove item
-                    </Button>
-                  )}
-                </Col>
               </Row>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                className="mb-3"
+                placeholder="Description"
+                value={sub.description}
+                onChange={(e) =>
+                  handleChangeSub(index, "description", e.target.value)
+                }
+              />
+
+              <Form.Label><strong>Variations</strong></Form.Label>
+              {sub.variations.map((v, varIndex) => (
+                <Row key={varIndex} className="g-2 mb-2 align-items-center">
+                  <Col md={6}>
+                    <Form.Control
+                      placeholder="Variation Name"
+                      value={v.name}
+                      onChange={(e) =>
+                        handleVariationChange(index, varIndex, "name", e.target.value)
+                      }
+                    />
+                  </Col>
+                  <Col md={4}>
+                    <Form.Control
+                      type="number"
+                      placeholder="Price"
+                      value={v.price}
+                      onChange={(e) =>
+                        handleVariationChange(index, varIndex, "price", e.target.value)
+                      }
+                    />
+                  </Col>
+                  <Col md={2}>
+                    {sub.variations.length > 1 && (
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => removeVariationField(index, varIndex)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </Col>
+                </Row>
+              ))}
+              <Button
+                variant="outline-primary"
+                size="sm"
+                className="mb-3"
+                onClick={() => addVariationField(index)}
+              >
+                + Add Variation
+              </Button>
+
+              {subCategories.length > 1 && (
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  className="mt-3 d-block"
+                  onClick={() => removeSubField(index)}
+                >
+                  Remove Item
+                </Button>
+              )}
             </div>
           ))}
 
           {!editData?.isSubCategory && (
-            <Button variant="outline-primary" size="sm" onClick={addSubField}>
+            <Button variant="outline-success" onClick={addSubField}>
               + Add Menu Item
             </Button>
           )}
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide} disabled={loading || uploading}>
+        <Button variant="secondary" onClick={onHide} disabled={loading}>
           Cancel
         </Button>
         <Button
@@ -331,12 +385,10 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
           onClick={handleSubmit}
           disabled={
             loading ||
-            (!editData?.isSubCategory &&
-              subCategories.some((sub) => !sub.image || !sub.name.trim())) ||
-            uploading
+            subCategories.some((sub) => !sub.name.trim() || !sub.image)
           }
         >
-          {loading || uploading ? "Saving..." : editData ? "Save Changes" : "Add Category"}
+          {loading ? "Saving..." : editData ? "Save Changes" : "Add Category"}
         </Button>
       </Modal.Footer>
     </Modal>
