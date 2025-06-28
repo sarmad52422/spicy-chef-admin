@@ -57,7 +57,7 @@ const PendingPayments = () => {
           <th>Payment Type</th>
           <th>Address</th>
           <th>Date</th>
-          <th>Amount (£)</th>
+          <th>Amount</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -70,7 +70,7 @@ const PendingPayments = () => {
             <td>{item.paymentType}</td>
             <td>{item.address}</td>
             <td>{item.createdAt ? item.createdAt.slice(0, 10) : ''}</td>
-            <td>£{Number(item.totalAmount || 0).toFixed(2)}</td>
+            <td>{Number(item.totalAmount || 0).toFixed(2)}</td>
             <td>{item.paymentStatus}</td>
           </tr>
         ))}
