@@ -97,6 +97,7 @@ const LiveOrder = () => {
             name: v.name,
             price: String(v.price),
           })),
+          modifiers: item.modifiers || [],
         })),
       };
       const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
@@ -133,6 +134,7 @@ const LiveOrder = () => {
             name: v.name,
             price: String(v.price),
           })),
+          modifiers: item.modifiers || [],
         })),
       };
       const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
@@ -196,7 +198,7 @@ const LiveOrder = () => {
     setShowSubCategoryModal(true);
   };
 
-  const handleSaveSubCategory = (data) => {
+  const handleSaveSubCategory = async (data) => {
     if (subCategoryEditData) {
       // Handle edit
       dispatch(
@@ -211,16 +213,34 @@ const LiveOrder = () => {
         })
       );
     } else {
-      // Handle add new
-      dispatch(
-        addSubCategory({
-          categoryId: selectedCategoryId,
-          subCategory: {
-            ...data,
-            id: Date.now(),
+      // Call backend API to add item
+      setLoading(true);
+      try {
+        const payload = {
+          name: data.name,
+          price: String(data.price),
+          image: data.image || data.preview,
+          category_id: selectedCategoryId,
+          description: data.description,
+          variation: (data.variations || data.variation || []).filter(v => v.name && v.price).map(v => ({
+            name: v.name,
+            price: String(v.price),
+          })),
+          modifiers: data.modifiers || [],
+        };
+        await fetch('https://api.eatmeonline.co.uk/api/admin/category/item', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
-        })
-      );
+          body: JSON.stringify(payload),
+        });
+        await fetchCategories();
+      } catch (err) {
+        // handle error if needed
+      }
+      setLoading(false);
     }
     setShowSubCategoryModal(false);
     setSubCategoryEditData(null);

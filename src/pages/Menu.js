@@ -131,6 +131,7 @@ const Menu = () => {
             name: v.name,
             price: String(v.price),
           })),
+          modifiers: item.modifiers || [],
         })),
       };
       const res = await fetch(`${API_BASE_URL}/admin/category`, {
@@ -177,6 +178,7 @@ const Menu = () => {
             name: v.name,
             price: String(v.price),
           })),
+          modifiers: item.modifiers || [],
         })),
       };
       const res = await fetch(`${API_BASE_URL}/admin/category`, {
