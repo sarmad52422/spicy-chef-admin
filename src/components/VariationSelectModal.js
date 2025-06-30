@@ -3,10 +3,30 @@ import { Modal, Button, Image, Form } from "react-bootstrap";
 
 const VariationSelectModal = ({ show, onHide, options = [], item, onSelect }) => {
   const [selected, setSelected] = useState(null);
+  // { [modifierId]: [optionId, ...] }
+  const [selectedModifierOptions, setSelectedModifierOptions] = useState({});
 
   React.useEffect(() => {
     setSelected(null);
+    setSelectedModifierOptions({});
   }, [show, item]);
+
+  // Prepare modifiers from item.itemModifier
+  const modifiers = (item?.itemModifier || [])
+    .map(im => im.modifier)
+    .filter(Boolean);
+
+  // Handler for checkbox change
+  const handleModifierOptionChange = (modifierId, optionId, checked) => {
+    setSelectedModifierOptions(prev => {
+      const prevOptions = prev[modifierId] || [];
+      if (checked) {
+        return { ...prev, [modifierId]: [...prevOptions, optionId] };
+      } else {
+        return { ...prev, [modifierId]: prevOptions.filter(id => id !== optionId) };
+      }
+    });
+  };
 
   return (
     <Modal show={show} onHide={onHide} centered>
@@ -37,6 +57,29 @@ const VariationSelectModal = ({ show, onHide, options = [], item, onSelect }) =>
             />
           ))}
         </Form>
+        {/* Modifiers and their options as checkboxes */}
+        {modifiers.length > 0 && (
+          <div className="mt-3">
+            <label><strong>Modifiers</strong></label>
+            {modifiers.map(mod => (
+              <div key={mod.id} className="mb-2">
+                <div className="fw-bold mb-1">{mod.name}</div>
+                {(mod.modifierOption || []).map(opt => (
+                  <Form.Check
+                    key={opt.id}
+                    type="checkbox"
+                    id={`modopt-${mod.id}-${opt.id}`}
+                    label={`${opt.name}${opt.price ? ` (£${opt.price})` : ''}`}
+                    checked={(selectedModifierOptions[mod.id] || []).includes(opt.id)}
+                    onChange={e => handleModifierOptionChange(mod.id, opt.id, e.target.checked)}
+                    className="ms-3"
+                  />
+                ))}
+              </div>
+            ))}
+            <div className="text-muted small">Select modifier options for this item.</div>
+          </div>
+        )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>
@@ -45,7 +88,7 @@ const VariationSelectModal = ({ show, onHide, options = [], item, onSelect }) =>
         <Button
           variant="primary"
           onClick={() => {
-            if (selected !== null) onSelect(options[selected]);
+            if (selected !== null) onSelect(options[selected], selectedModifierOptions);
           }}
           disabled={selected === null}
         >

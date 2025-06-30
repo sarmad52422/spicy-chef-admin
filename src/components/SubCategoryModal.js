@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import Select from 'react-select';
 
 const SubCategoryModal = ({ 
   show, 
@@ -20,6 +21,8 @@ const SubCategoryModal = ({
   const [variations, setVariations] = useState([
     { name: '', price: '' },
   ]);
+  const [modifiers, setModifiers] = useState([]);
+  const [selectedModifiers, setSelectedModifiers] = useState([]);
 
   useEffect(() => {
     if (initialData) {
@@ -35,6 +38,40 @@ const SubCategoryModal = ({
       setImage(null);
       setPreview('');
       setVariations([{ name: '', price: '' }]);
+    }
+  }, [initialData, show]);
+
+  useEffect(() => {
+    // Fetch modifiers for the branch
+    const fetchModifiers = async () => {
+      const branch = JSON.parse(localStorage.getItem('selectedBranch'));
+      if (!branch?.id) return;
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/modifier?branch_id=${branch.id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (data.status && Array.isArray(data.result?.data)) {
+          setModifiers(data.result.data);
+        } else {
+          setModifiers([]);
+        }
+      } catch {
+        setModifiers([]);
+      }
+    };
+    fetchModifiers();
+  }, [show]);
+
+  useEffect(() => {
+    if (initialData && Array.isArray(initialData.modifiers)) {
+      setSelectedModifiers(initialData.modifiers);
+    } else {
+      setSelectedModifiers([]);
     }
   }, [initialData, show]);
 
@@ -63,6 +100,11 @@ const SubCategoryModal = ({
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (max 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        alert('Image size must be less than or equal to 100MB.');
+        return;
+      }
       const url = await uploadImage(file);
       if (url) {
         setPreview(url);
@@ -90,6 +132,10 @@ const SubCategoryModal = ({
   const removeVariation = (index) => {
     const updated = variations.filter((_, i) => i !== index);
     setVariations(updated.length ? updated : [{ name: '', price: '' }]);
+  };
+
+  const handleModifierSelect = (selectedOptions) => {
+    setSelectedModifiers(Array.from(selectedOptions).map(option => option.value));
   };
 
   const handleSubmit = async () => {
@@ -120,6 +166,7 @@ const SubCategoryModal = ({
               price: price === '' ? '0' : String(price)
             }]
       ),
+      modifiers: selectedModifiers,
       ...(initialData && initialData.id ? { id: initialData.id } : {}),
     };
 
@@ -252,6 +299,20 @@ const SubCategoryModal = ({
             >
               + Add Variation
             </Button>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Modifiers</Form.Label>
+            <Select
+              isMulti
+              options={modifiers.map(mod => ({ value: mod.id, label: mod.name }))}
+              value={modifiers.filter(mod => selectedModifiers.includes(mod.id)).map(mod => ({ value: mod.id, label: mod.name }))}
+              onChange={selected => {
+                setSelectedModifiers(selected ? selected.map(opt => opt.value) : []);
+              }}
+              placeholder="Select modifiers..."
+            />
+            <Form.Text>Select one or more modifiers for this item.</Form.Text>
           </Form.Group>
         </Form>
       </Modal.Body>

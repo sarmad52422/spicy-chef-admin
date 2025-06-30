@@ -101,8 +101,13 @@ const Checkout = () => {
         phoneNo: mobileNumber,
         postCode: postcode,
         items: cartItems.map(item => {
-          // Always send variationId: use item.variationId if present, otherwise use item.id
-          return { variationId: item.variationId || item.id, quantity: item.quantity };
+          // If variationId is present, use it as id. If modifierOptionIds are present, send as 'modifiers' array.
+          const id = item.variationId || item.id;
+          const base = { id, quantity: item.quantity };
+          if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
+            return { ...base, modifiers: item.modifierOptionIds };
+          }
+          return base;
         }),
       };
       const res = await fetch("https://api.eatmeonline.co.uk/api/order", {

@@ -10,14 +10,19 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addToCart(state, action) {
-      const { id, name, price, variationId } = action.payload;
+      const { id, name, price, variationId, modifierOptionIds } = action.payload;
       // Use variationId as the unique identifier if present, otherwise fallback to id
+      // Also include modifierOptionIds in uniqueness check
       const uniqueId = variationId || id;
-      const existing = state.items.find(item => (item.variationId || item.id) === uniqueId);
+      const existing = state.items.find(item => {
+        const sameVariation = (item.variationId || item.id) === uniqueId;
+        const sameModifiers = JSON.stringify(item.modifierOptionIds || []) === JSON.stringify(modifierOptionIds || []);
+        return sameVariation && sameModifiers;
+      });
       if (existing) {
         existing.quantity += 1;
       } else {
-        state.items.push({ id, name, price, quantity: 1, ...(variationId ? { variationId } : {}) });
+        state.items.push({ id, name, price, quantity: 1, ...(variationId ? { variationId } : {}), ...(modifierOptionIds ? { modifierOptionIds } : {}) });
       }
     },
     incrementQuantity(state, action) {
