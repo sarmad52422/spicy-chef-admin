@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import axios from "axios";
 import { v4 as uuidv4 } from 'uuid';
+import Select from 'react-select';
 
 const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const [categoryName, setCategoryName] = useState("");
   const [categoryImage, setCategoryImage] = useState(null);
+  const [modifiers, setModifiers] = useState([]);
   const [subCategories, setSubCategories] = useState([
     {
       name: "",
@@ -14,6 +16,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       image: null,
       description: "",
       variations: [{ name: "", price: "" }],
+      modifiers: [],
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
             image: editData.image || null,
             description: editData.description || "",
             variations: editData.variations || [{ name: "", price: "" }],
+            modifiers: editData.modifiers || [],
           },
         ]);
       } else {
@@ -46,6 +50,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                 image: sub.image || null,
                 description: sub.description || "",
                 variations: sub.variations || [{ name: "", price: "" }],
+                modifiers: sub.modifiers || [],
               }))
             : [
                 {
@@ -55,6 +60,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                   image: null,
                   description: "",
                   variations: [{ name: "", price: "" }],
+                  modifiers: [],
                 },
               ]
         );
@@ -70,10 +76,36 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
           image: null,
           description: "",
           variations: [{ name: "", price: "" }],
+          modifiers: [],
         },
       ]);
     }
   }, [editData, show]);
+
+  useEffect(() => {
+    const fetchModifiers = async () => {
+      const branch = JSON.parse(localStorage.getItem("selectedBranch"));
+      if (!branch?.id) return;
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/modifier?branch_id=${branch.id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (data.status && Array.isArray(data.result?.data)) {
+          setModifiers(data.result.data);
+        } else {
+          setModifiers([]);
+        }
+      } catch {
+        setModifiers([]);
+      }
+    };
+    fetchModifiers();
+  }, [show]);
 
   const uploadImage = async (file) => {
     const formData = new FormData();
@@ -104,6 +136,11 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const handleImageFileChange = async (e, index = null) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (max 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        alert('Image size must be less than or equal to 100MB.');
+        return;
+      }
       const url = await uploadImage(file);
       if (url) {
         if (index !== null) {
@@ -125,6 +162,13 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     setSubCategories(updated);
   };
 
+  const handleModifierSelect = (index, selectedIds) => {
+    const updated = subCategories.map((sub, i) =>
+      i === index ? { ...sub, modifiers: selectedIds } : sub
+    );
+    setSubCategories(updated);
+  };
+
   const addSubField = () => {
     setSubCategories([
       ...subCategories,
@@ -135,6 +179,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
         image: null,
         description: "",
         variations: [{ name: "", price: "" }],
+        modifiers: [],
       },
     ]);
   };
@@ -152,6 +197,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
               image: null,
               description: "",
               variations: [{ name: "", price: "" }],
+              modifiers: [],
             },
           ]
     );
@@ -226,6 +272,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                 price: sc.price === "" ? 0 : Number(sc.price)
               }]
         ),
+        modifiers: sc.modifiers || [],
       }));
 
     setLoading(true);
@@ -365,6 +412,21 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
               >
                 + Add Variation
               </Button>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Modifiers</Form.Label>
+                <Select
+                  isMulti
+                  options={modifiers.map(mod => ({ value: mod.id, label: mod.name }))}
+                  value={modifiers.filter(mod => (sub.modifiers || []).includes(mod.id)).map(mod => ({ value: mod.id, label: mod.name }))}
+                  onChange={selected => {
+                    const selectedIds = selected ? selected.map(opt => opt.value) : [];
+                    handleModifierSelect(index, selectedIds);
+                  }}
+                  placeholder="Select modifiers..."
+                />
+                <Form.Text>Select one or more modifiers for this item.</Form.Text>
+              </Form.Group>
 
               {subCategories.length > 1 && (
                 <Button

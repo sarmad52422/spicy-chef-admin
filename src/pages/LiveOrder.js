@@ -581,14 +581,31 @@ const LiveOrder = () => {
         onHide={() => setShowVariationModal(false)}
         options={variationOptions}
         item={variationItem}
-        onSelect={(variation) => {
+        onSelect={(variation, selectedModifierOptions) => {
           if (variationItem) {
+            // Flatten all selected modifier option IDs into a single array
+            const modifierOptionIds = Object.values(selectedModifierOptions || {}).flat();
+            // Calculate total modifier price
+            let modifierTotal = 0;
+            if (variationItem.itemModifier && modifierOptionIds.length > 0) {
+              variationItem.itemModifier.forEach(im => {
+                if (im.modifier && im.modifier.modifierOption) {
+                  im.modifier.modifierOption.forEach(opt => {
+                    if (modifierOptionIds.includes(opt.id)) {
+                      modifierTotal += Number(opt.price) || 0;
+                    }
+                  });
+                }
+              });
+            }
+            const totalPrice = (Number(variation.price) || 0) + modifierTotal;
             dispatch(
               addToCart({
                 id: variation.id,
                 name: `${variationItem.name} - ${variation.name}`,
-                price: variation.price,
+                price: totalPrice,
                 variationId: variation.id,
+                modifierOptionIds, // store in cart item
               })
             );
           }
