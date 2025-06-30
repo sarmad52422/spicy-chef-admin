@@ -136,7 +136,6 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const handleImageFileChange = async (e, index = null) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (max 100MB)
       if (file.size > 100 * 1024 * 1024) {
         alert('Image size must be less than or equal to 100MB.');
         return;
@@ -317,6 +316,15 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Category Image</Form.Label>
+                {categoryImage && (
+                  <div className="mb-2">
+                    <img
+                      src={categoryImage}
+                      alt="Category Preview"
+                      style={{ maxWidth: "150px", borderRadius: "8px" }}
+                    />
+                  </div>
+                )}
                 <Form.Control
                   type="file"
                   accept="image/*"

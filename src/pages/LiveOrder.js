@@ -39,9 +39,7 @@ const LiveOrder = () => {
   const [showAbandonModal, setShowAbandonModal] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
   const [subCategoryEditData, setSubCategoryEditData] = useState(null);
   const [deleteModal, setDeleteModal] = useState({
     show: false,
@@ -173,7 +171,6 @@ const LiveOrder = () => {
 
   const handleBack = () => {
     setSelectedCategoryId(null);
-    setEditTarget(null);
   };
 
   const handleConfirmDelete = async () => {
@@ -229,16 +226,6 @@ const LiveOrder = () => {
     setSubCategoryEditData(null);
   };
 
-  const handleSave = async (data, isEdit = false) => {
-    if (isEdit) {
-      await updateCategory(data);
-    } else {
-      await createCategory(data);
-    }
-    setShowAddModal(false);
-    setEditTarget(null);
-  };
-
   const filteredCategories = categories.filter((cat) => {
     if (!searchQuery.trim()) return true;
     const inCat = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -257,7 +244,7 @@ const LiveOrder = () => {
         <div className="col-12 col-lg-8 col-md-8 border-end py-4 pe-0">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Live Order Menu</h4>
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 me-2">
               <input
                 type="text"
                 className="form-control form-control-sm"
@@ -266,21 +253,12 @@ const LiveOrder = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ width: "250px" }}
               />
-              <button
-                className="btn btn-dark btn-sm shadow me-2"
-                onClick={() => {
-                  setEditTarget(null);
-                  setShowAddModal(true);
-                }}
-              >
-                Add Food Category
-              </button>
             </div>
           </div>
 
           {selectedCategory ? (
             <>
-              <div className="d-flex align-items-center justify-content-between my-5">
+              <div className="d-flex align-items-center justify-content-between my-2">
                 <button
                   className="btn btn-outline-dark shadow-sm"
                   onClick={handleBack}
@@ -295,7 +273,7 @@ const LiveOrder = () => {
                 </button>
               </div>
               <h5 className="mb-3">{selectedCategory.name}</h5>
-              <div className="row">
+              <div className="row item-list-main">
                 {(selectedCategory.item || []).length === 0 ? (
                   <div className="col-12 text-center text-muted py-5">
                     No items found
@@ -364,15 +342,7 @@ const LiveOrder = () => {
                         <div className="hover-icons position-absolute m-1 d-flex gap-2 icons-main">
                           <FaEdit
                             className="text-primary cursor-pointer sub-category-icon"
-                            onClick={() => {
-                              setEditTarget({
-                                ...item,
-                                isSubCategory: true,
-                                categoryId: selectedCategory.id,
-                                subIndex: index,
-                              });
-                              setShowAddModal(true);
-                            }}
+                            
                           />
                           <FaTrash
                             className="text-danger cursor-pointer sub-category-icon"
@@ -432,10 +402,7 @@ const LiveOrder = () => {
                         >
                           <FaEdit
                             className="text-primary cursor-pointer d-hover-inline"
-                            onClick={() => {
-                              setEditTarget(cat);
-                              setShowAddModal(true);
-                            }}
+                            
                           />
                           <FaTrash
                             className="text-danger cursor-pointer d-hover-inline"
@@ -520,15 +487,6 @@ const LiveOrder = () => {
       </div>
 
       {/* Modals */}
-      <AddCategoryModal
-        show={showAddModal}
-        onHide={() => {
-          setShowAddModal(false);
-          setEditTarget(null);
-        }}
-        onSave={handleSave}
-        editData={editTarget}
-      />
 
       <SubCategoryModal
         show={showSubCategoryModal}

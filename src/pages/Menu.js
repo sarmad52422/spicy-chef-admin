@@ -348,7 +348,7 @@ const Menu = () => {
 
           {selectedCategory ? (
             <>
-              <div className="d-flex align-items-center justify-content-between my-5">
+              <div className="d-flex align-items-center justify-content-between my-2">
                 <button className="btn btn-outline-dark shadow-sm" onClick={handleBack}>
                   ← Back
                 </button>
@@ -360,7 +360,7 @@ const Menu = () => {
                 </button>
               </div>
               <h5 className="mb-3">{selectedCategory.name}</h5>
-              <div className="row">
+              <div className="row item-list-main">
                 {(selectedCategory.item || []).length === 0 ? (
                   <div className="col-12 text-center text-muted py-5">
                     No items found
@@ -368,7 +368,7 @@ const Menu = () => {
                 ) : (
                   (selectedCategory.item || []).map((item, index) => (
                     <div key={item.id} className="col-6 col-md-4 col-lg-3 mb-3">
-                      <div className="border rounded pb-2 text-center shadow card-main position-relative">
+                      <div className="border rounded pb-5 text-center shadow card-main position-relative">
                         {item.image && (
                           <div
                             className="w-100 mb-2"
