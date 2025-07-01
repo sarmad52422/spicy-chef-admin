@@ -12,6 +12,8 @@ import { useDispatch } from "react-redux";
 import { initializeMenu } from "./redux/slices/menuSlice";
 import { useEffect } from "react";
 import Login from "./pages/Login";
+import Setting from "./pages/Setting";
+import NewOrders from "./pages/NewOrders";
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -41,6 +43,8 @@ function App() {
               <Route path="/live-order" element={<LiveOrder />} />
               <Route path="/pending-payments" element={<PendingPayments />} />
               <Route path="/modifier" element={<Modifier />} />
+              <Route path="/setting" element={<Setting />} />
+              <Route path="/new-orders" element={<NewOrders />} />
               <Route path="/checkout" element={<Checkout />} />
             </Routes>
           </PrivateRoute>
