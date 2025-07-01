@@ -47,6 +47,8 @@ const Navbar = () => {
                 <Link to="/live-order" className="btn btn-outline-dark">Live Order</Link>
                 <Link to="/pending-payments" className="btn btn-outline-dark">All Payments</Link>
                 <Link to="/modifier" className="btn btn-outline-dark">Modifier</Link>
+                <Link to="/setting" className="btn btn-outline-dark">Setting</Link>
+                <Link to="/new-orders" className="btn btn-outline-dark">New Orders</Link>
               </div>
               <div className="d-flex align-items-center gap-3 text-muted">
                 <span

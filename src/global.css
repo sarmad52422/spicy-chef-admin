@@ -7,7 +7,9 @@ html {
 .cursor-pointer {
   cursor: pointer;
 }
-
+.accordion-button:focus{
+  box-shadow: none !important;
+}
 /* Menu Css */
 .card-main {
   min-height: 155px;
