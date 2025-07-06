@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Form, Button, Row, Col, Card } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
 
 export default function Setting() {
   const [deliveryFee, setDeliveryFee] = useState("");
@@ -13,8 +13,35 @@ export default function Setting() {
     "Friday",
     "Saturday",
   ]);
+  const [feeStatus, setFeeStatus] = useState(null);
+  const [feeError, setFeeError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setLoading(true);
+      setFeeError(null);
+      const branch = JSON.parse(localStorage.getItem("selectedBranch"));
+      if (!branch?.id) {
+        setFeeError("No branch selected.");
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/settings/${branch.id}`);
+        const data = await res.json();
+        if (data.status && data.result?.data?.setting) {
+          setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
+        }
+      } catch (err) {
+        setFeeError("Failed to fetch settings.");
+      }
+      setLoading(false);
+    };
+    fetchSettings();
+  }, []);
 
   const handleDayChange = (day) => {
     if (selectedDays.includes(day)) {
@@ -24,8 +51,35 @@ export default function Setting() {
     }
   };
 
-  const handleDeliverySave = () => {
-    console.log("Delivery Fee Saved:", deliveryFee);
+  const handleDeliverySave = async () => {
+    setFeeStatus(null);
+    setFeeError(null);
+    const branch = JSON.parse(localStorage.getItem("selectedBranch"));
+    if (!branch?.id) {
+      setFeeError("No branch selected.");
+      return;
+    }
+    try {
+      const res = await fetch("https://api.eatmeonline.co.uk/api/admin/delievery-fee", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          branch_id: branch.id,
+          deliveryFee: Number(deliveryFee),
+        }),
+      });
+      const data = await res.json();
+      if (data.status) {
+        setFeeStatus("Delivery fee updated successfully.");
+      } else {
+        setFeeError(data.message || "Failed to update delivery fee.");
+      }
+    } catch (err) {
+      setFeeError("Failed to update delivery fee.");
+    }
   };
 
   const handleTimingSave = () => {
@@ -48,8 +102,11 @@ export default function Setting() {
               placeholder="Add Delivery Fee"
               value={deliveryFee}
               onChange={(e) => setDeliveryFee(e.target.value)}
+              disabled={loading}
             />
           </Form.Group>
+          {feeStatus && <Alert className="alert-success" variant="success">{feeStatus}</Alert>}
+          {feeError && <Alert className="alert-success" variant="danger">{feeError}</Alert>}
           <Button variant="primary" onClick={handleDeliverySave}>
             Save
           </Button>

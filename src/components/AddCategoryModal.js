@@ -21,6 +21,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   ]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isDeal, setIsDeal] = useState(false);
 
   useEffect(() => {
     if (editData) {
@@ -35,22 +36,32 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
             image: editData.image || null,
             description: editData.description || "",
             variations: editData.variations || [{ name: "", price: "" }],
-            modifiers: editData.modifiers || [],
+            modifiers: Array.isArray(editData.modifiers)
+              ? editData.modifiers.map(m => typeof m === 'object' ? m.id : m)
+              : [],
           },
         ]);
       } else {
         setCategoryName(String(editData.name || ""));
         setCategoryImage(editData.image || null);
+        setIsDeal(!!editData.is_deal);
+        const items = Array.isArray(editData.subCategories)
+          ? editData.subCategories
+          : Array.isArray(editData.item)
+            ? editData.item
+            : [];
         setSubCategories(
-          Array.isArray(editData.subCategories)
-            ? editData.subCategories.map((sub) => ({
+          items.length > 0
+            ? items.map((sub) => ({
                 name: String(sub.name || ""),
                 price: sub.price !== undefined ? String(sub.price) : "",
                 id: sub.id || Date.now() + Math.random(),
                 image: sub.image || null,
                 description: sub.description || "",
-                variations: sub.variations || [{ name: "", price: "" }],
-                modifiers: sub.modifiers || [],
+                variations: sub.variations || sub.variation || [{ name: "", price: "" }],
+                modifiers: Array.isArray(sub.modifiers)
+                  ? sub.modifiers.map(m => typeof m === 'object' ? m.id : m)
+                  : [],
               }))
             : [
                 {
@@ -68,6 +79,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     } else {
       setCategoryName("");
       setCategoryImage(null);
+      setIsDeal(false);
       setSubCategories([
         {
           name: "",
@@ -279,11 +291,13 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       if (editData?.isSubCategory) {
         await onSave({ ...editData, ...validSubs[0] }, true);
       } else {
-        await onSave({
+        const payload = {
           name: categoryName.trim(),
           image: categoryImage,
           subCategories: validSubs,
-        });
+        };
+        if (isDeal) payload.is_deal = true;
+        await onSave(payload);
       }
       onHide();
     } finally {
@@ -330,6 +344,14 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                   accept="image/*"
                   onChange={(e) => handleImageFileChange(e)}
                   disabled={uploading}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="isDealCheckbox">
+                <Form.Check
+                  type="checkbox"
+                  label="Is Deal"
+                  checked={isDeal}
+                  onChange={e => setIsDeal(e.target.checked)}
                 />
               </Form.Group>
             </>

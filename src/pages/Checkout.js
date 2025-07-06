@@ -100,14 +100,21 @@ const Checkout = () => {
         address,
         phoneNo: mobileNumber,
         postCode: postcode,
-        items: cartItems.map(item => {
-          // If variationId is present, use it as id. If modifierOptionIds are present, send as 'modifiers' array.
-          const id = item.variationId || item.id;
-          const base = { id, quantity: item.quantity };
-          if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
-            return { ...base, modifiers: item.modifierOptionIds };
+        items: cartItems.flatMap(item => {
+          const result = [];
+          // Always send the base item
+          result.push({ id: item.id, quantity: item.quantity });
+          // If variationId is present, send as a separate object
+          if (item.variationId) {
+            result.push({ id: item.variationId, quantity: item.quantity });
           }
-          return base;
+          // If modifierOptionIds are present, send each as a separate object
+          if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
+            item.modifierOptionIds.forEach(modId => {
+              result.push({ id: modId, quantity: item.quantity });
+            });
+          }
+          return result;
         }),
       };
       const res = await fetch("https://api.eatmeonline.co.uk/api/order", {

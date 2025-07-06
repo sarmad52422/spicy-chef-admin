@@ -69,7 +69,7 @@ const SubCategoryModal = ({
 
   useEffect(() => {
     if (initialData && Array.isArray(initialData.modifiers)) {
-      setSelectedModifiers(initialData.modifiers);
+      setSelectedModifiers(initialData.modifiers.map(m => typeof m === 'object' ? m.id : m));
     } else {
       setSelectedModifiers([]);
     }

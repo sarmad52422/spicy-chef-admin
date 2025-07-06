@@ -10,6 +10,15 @@ html {
 .accordion-button:focus{
   box-shadow: none !important;
 }
+
+
+.alert-success {
+  position: absolute;
+  top: 20px;
+  right: 10px;
+  z-index: 1000;
+  width: fit-content;
+}
 /* Menu Css */
 .card-main {
   min-height: 155px;
