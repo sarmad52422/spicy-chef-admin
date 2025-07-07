@@ -7,10 +7,9 @@ html {
 .cursor-pointer {
   cursor: pointer;
 }
-.accordion-button:focus{
+.accordion-button:focus {
   box-shadow: none !important;
 }
-
 
 .alert-success {
   position: absolute;
@@ -105,4 +104,8 @@ html {
   height: 65%;
   overflow-y: auto;
   overflow-x: hidden;
+}
+.table-main {
+  max-height: 500px;
+  overflow-y: auto;
 }

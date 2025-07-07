@@ -38,58 +38,66 @@ const PendingPayments = () => {
 
   const filterOrders = () => {
     if (activeTab === "pending") {
-      return orders.filter(o => o.paymentStatus === "PENDING");
+      return orders.filter((o) => o.paymentStatus === "PENDING");
     } else if (activeTab === "card") {
-      return orders.filter(o => o.paymentType === "CARD");
+      return orders.filter((o) => o.paymentType === "CARD");
     } else if (activeTab === "cash") {
-      return orders.filter(o => o.paymentType === "CASH");
+      return orders.filter((o) => o.paymentType === "CASH");
     }
     return orders;
   };
 
   const renderTable = (data) => (
-    <Table striped bordered hover responsive className="mt-4">
-      <thead className="table-dark">
-        <tr>
-          <th>Order ID</th>
-          <th>Customer Name</th>
-          <th>Order Type</th>
-          <th>Payment Type</th>
-          <th>Address</th>
-          <th>Date</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Items</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((item, idx) => (
-          <tr key={item.id || idx}>
-            <td>{item.orderId}</td>
-            <td>{item.fullName}</td>
-            <td>{item.orderType}</td>
-            <td>{item.paymentType}</td>
-            <td>{item.address}</td>
-            <td>{item.createdAt ? item.createdAt.slice(0, 10) : ''}</td>
-            <td>{Number(item.totalAmount || 0).toFixed(2)}</td>
-            <td>{item.paymentStatus}</td>
-            <td>
-              {Array.isArray(item.items) && item.items.length > 0 ? (
-                item.items.map((orderItem, i) => (
-                  <div key={orderItem.id || i} style={{ marginBottom: 4 }}>
-                    <span><b>Qty:</b> {orderItem.quantity}</span>{' '}
-                    <span><b>Name:</b> {orderItem.variation?.name || '-'}</span>{' '}
-                    <span><b>Price:</b> £{orderItem.variation?.price || '-'}</span>
-                  </div>
-                ))
-              ) : (
-                <span>-</span>
-              )}
-            </td>
+    <div className="table-main">
+      <Table striped bordered hover responsive className="mt-4">
+        <thead className="table-dark">
+          <tr>
+            <th>Order ID</th>
+            <th>Customer Name</th>
+            <th>Order Type</th>
+            <th>Payment Type</th>
+            <th>Address</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Items</th>
           </tr>
-        ))}
-      </tbody>
-    </Table>
+        </thead>
+        <tbody>
+          {data.map((item, idx) => (
+            <tr key={item.id || idx}>
+              <td>{item.orderId}</td>
+              <td>{item.fullName}</td>
+              <td>{item.orderType}</td>
+              <td>{item.paymentType}</td>
+              <td>{item.address}</td>
+              <td>{item.createdAt ? item.createdAt.slice(0, 10) : ""}</td>
+              <td>{Number(item.totalAmount || 0).toFixed(2)}</td>
+              <td>{item.paymentStatus}</td>
+              <td>
+                {Array.isArray(item.items) && item.items.length > 0 ? (
+                  item.items.map((orderItem, i) => (
+                    <div key={orderItem.id || i} style={{ marginBottom: 4 }}>
+                      <span>
+                        <b>Qty:</b> {orderItem.quantity}
+                      </span>{" "}
+                      <span>
+                        <b>Name:</b> {orderItem.variation?.name || "-"}
+                      </span>{" "}
+                      <span>
+                        <b>Price:</b> £{orderItem.variation?.price || "-"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <span>-</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
   );
 
   return (
