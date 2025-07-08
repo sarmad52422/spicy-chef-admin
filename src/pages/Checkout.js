@@ -102,13 +102,13 @@ const Checkout = () => {
         postCode: postcode,
         items: cartItems.flatMap(item => {
           const result = [];
-          // Always send the base item
-          result.push({ id: item.id, quantity: item.quantity });
           // If variationId is present, send as a separate object
           if (item.variationId) {
             result.push({ id: item.variationId, quantity: item.quantity });
           }
-          // If modifierOptionIds are present, send each as a separate object
+          else{
+            result.push({ id: item.id, quantity: item.quantity });
+          }
           if (item.modifierOptionIds && item.modifierOptionIds.length > 0) {
             item.modifierOptionIds.forEach(modId => {
               result.push({ id: modId, quantity: item.quantity });

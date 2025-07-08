@@ -166,19 +166,33 @@ export default function NewOrders() {
       </Accordion.Header>
       <Accordion.Body>
         {Array.isArray(order.items) && order.items.length > 0 ? (
-          order.items.map((item, i) => (
-            <div key={i} className="mb-2 d-flex justify-content-between align-items-center">
-              <div>
+          order.items.map((item, i) => {
+            // Get item name and price
+            let itemName = "-";
+            let itemPrice = "-";
+            if (item.item && item.item.name) {
+              itemName = item.item.name;
+              itemPrice = item.item.price;
+            } else if (item.variation && item.variation.item && item.variation.item.name) {
+              itemName = item.variation.item.name;
+              itemPrice = item.variation.price || item.variation.item.price;
+            } else if (item.modifierOption && item.modifierOption.name) {
+              itemName = item.modifierOption.name;
+              itemPrice = item.modifierOption.price;
+            }
+            return (
+              <div key={i} className="mb-2 d-flex justify-content-between align-items-center">
                 <div>
-                  <strong>{item.variation?.name || item.name || "-"}</strong>
+                  <div>
+                    <strong>{itemName}</strong>
+                  </div>
                 </div>
-                <div className="text-muted">{item.variation?.desc || item.desc || "-"}</div>
+                <div>
+                  <strong>Qty:</strong> {item.quantity} <span className="ms-3"><strong>Price:</strong> £{itemPrice}</span>
+                </div>
               </div>
-              <div>
-                <strong>Qty:</strong> {item.quantity}
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div>No items</div>
         )}

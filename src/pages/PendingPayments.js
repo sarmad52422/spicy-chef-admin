@@ -76,19 +76,34 @@ const PendingPayments = () => {
               <td>{item.paymentStatus}</td>
               <td>
                 {Array.isArray(item.items) && item.items.length > 0 ? (
-                  item.items.map((orderItem, i) => (
-                    <div key={orderItem.id || i} style={{ marginBottom: 4 }}>
-                      <span>
-                        <b>Qty:</b> {orderItem.quantity}
-                      </span>{" "}
-                      <span>
-                        <b>Name:</b> {orderItem.variation?.name || "-"}
-                      </span>{" "}
-                      <span>
-                        <b>Price:</b> £{orderItem.variation?.price || "-"}
-                      </span>
-                    </div>
-                  ))
+                  item.items.map((orderItem, i) => {
+                    // Get item name and price
+                    let itemName = "-";
+                    let itemPrice = "-";
+                    if (orderItem.item && orderItem.item.name) {
+                      itemName = orderItem.item.name;
+                      itemPrice = orderItem.item.price;
+                    } else if (orderItem.variation && orderItem.variation.item && orderItem.variation.item.name) {
+                      itemName = orderItem.variation.item.name;
+                      itemPrice = orderItem.variation.price || orderItem.variation.item.price;
+                    } else if (orderItem.modifierOption && orderItem.modifierOption.name) {
+                      itemName = orderItem.modifierOption.name;
+                      itemPrice = orderItem.modifierOption.price;
+                    }
+                    return (
+                      <div key={orderItem.id || i} style={{ marginBottom: 4 }}>
+                        <span>
+                          <b>Qty:</b> {orderItem.quantity}
+                        </span>{" "}
+                        <span>
+                          <b>Name:</b> {itemName}
+                        </span>{" "}
+                        <span>
+                          <b>Price:</b> £{itemPrice}
+                        </span>
+                      </div>
+                    );
+                  })
                 ) : (
                   <span>-</span>
                 )}
