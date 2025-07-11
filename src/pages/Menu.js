@@ -122,6 +122,7 @@ const Menu = () => {
         name: category.name,
         image: category.image, // should be a URL string
         branch_id: selectedBranch.id,
+        is_deal: !!category.is_deal, // Always send true or false
         items: (category.subCategories || []).map(item => ({
           name: item.name,
           price: String(item.price),

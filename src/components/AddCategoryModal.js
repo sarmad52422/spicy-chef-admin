@@ -35,7 +35,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
             id: editData.id || Date.now(),
             image: editData.image || null,
             description: editData.description || "",
-            variations: editData.variations || [{ name: "", price: "" }],
+            variations: editData.variations || editData.variation || [{ name: "", price: "" }],
             modifiers: Array.isArray(editData.modifiers)
               ? editData.modifiers.map(m => typeof m === 'object' ? m.id : m)
               : [],
@@ -295,8 +295,8 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
           name: categoryName.trim(),
           image: categoryImage,
           subCategories: validSubs,
+          is_deal: isDeal, // Pass isDeal state up to parent
         };
-        if (isDeal) payload.is_deal = true;
         await onSave(payload);
       }
       onHide();
