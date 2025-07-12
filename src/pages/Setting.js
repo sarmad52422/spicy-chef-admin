@@ -3,6 +3,7 @@ import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
 
 export default function Setting() {
   const [deliveryFee, setDeliveryFee] = useState("");
+  const [serviceFee, setServiceFee] = useState("");
   const [startTime, setStartTime] = useState("00:00");
   const [closingTime, setClosingTime] = useState("00:00");
   const [selectedDays, setSelectedDays] = useState([
@@ -34,6 +35,7 @@ export default function Setting() {
         const data = await res.json();
         if (data.status && data.result?.data?.setting) {
           setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
+          setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
         }
       } catch (err) {
         setFeeError("Failed to fetch settings.");
@@ -69,16 +71,17 @@ export default function Setting() {
         body: JSON.stringify({
           branch_id: branch.id,
           deliveryFee: Number(deliveryFee),
+          serviceFee: Number(serviceFee),
         }),
       });
       const data = await res.json();
       if (data.status) {
-        setFeeStatus("Delivery fee updated successfully.");
+        setFeeStatus("Delivery and service fee updated successfully.");
       } else {
-        setFeeError(data.message || "Failed to update delivery fee.");
+        setFeeError(data.message || "Failed to update delivery/service fee.");
       }
     } catch (err) {
-      setFeeError("Failed to update delivery fee.");
+      setFeeError("Failed to update delivery/service fee.");
     }
   };
 
@@ -102,6 +105,18 @@ export default function Setting() {
               placeholder="Add Delivery Fee"
               value={deliveryFee}
               onChange={(e) => setDeliveryFee(e.target.value)}
+              disabled={loading}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <strong>Service Fee</strong>
+            </Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Add Service Fee"
+              value={serviceFee}
+              onChange={(e) => setServiceFee(e.target.value)}
               disabled={loading}
             />
           </Form.Group>

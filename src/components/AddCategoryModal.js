@@ -119,6 +119,30 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     fetchModifiers();
   }, [show]);
 
+  useEffect(() => {
+    if (editData) {
+      let items = [];
+      if (editData.isSubCategory) {
+        items = [editData];
+      } else if (Array.isArray(editData.subCategories)) {
+        items = editData.subCategories;
+      } else if (Array.isArray(editData.item)) {
+        items = editData.item;
+      }
+      if (modifiers.length > 0 && items.length > 0) {
+        setSubCategories(subCategories => subCategories.map((sub, idx) => {
+          const item = items[idx] || {};
+          return {
+            ...sub,
+            modifiers: Array.isArray(item.modifiers)
+              ? item.modifiers.map(m => typeof m === 'object' ? m.id : m)
+              : [],
+          };
+        }));
+      }
+    }
+  }, [editData, modifiers, show]);
+
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append("file", file);

@@ -68,12 +68,12 @@ const SubCategoryModal = ({
   }, [show]);
 
   useEffect(() => {
-    if (initialData && Array.isArray(initialData.modifiers)) {
+    if (initialData && Array.isArray(initialData.modifiers) && modifiers.length > 0) {
       setSelectedModifiers(initialData.modifiers.map(m => typeof m === 'object' ? m.id : m));
-    } else {
+    } else if (!initialData) {
       setSelectedModifiers([]);
     }
-  }, [initialData, show]);
+  }, [initialData, modifiers, show]);
 
   const uploadImage = async (file) => {
     const formData = new FormData();

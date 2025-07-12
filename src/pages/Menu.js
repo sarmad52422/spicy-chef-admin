@@ -427,6 +427,9 @@ const Menu = () => {
                                 isSubCategory: true,
                                 categoryId: selectedCategory.id,
                                 subIndex: index,
+                                modifiers: Array.isArray(item.itemModifier)
+                                  ? item.itemModifier.map(im => im.modifierId)
+                                  : [],
                               });
                               setShowAddModal(true);
                             }}
