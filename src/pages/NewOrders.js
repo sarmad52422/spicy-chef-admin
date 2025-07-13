@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Accordion, Button, Row, Col, Badge, Spinner, Alert, Modal, Toast, ToastContainer } from "react-bootstrap";
+import { FaBell } from "react-icons/fa";
+
+const NOTIFICATION_SOUND_URL = "/sound/notification.mp3";
 
 export default function NewOrders() {
   const [activeTab, setActiveTab] = useState("new");
@@ -16,6 +19,46 @@ export default function NewOrders() {
   const [orderStatusLoading, setOrderStatusLoading] = useState(false);
   const [orderStatusError, setOrderStatusError] = useState("");
 
+  // Notification states
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const audioRef = useRef(null);
+
+  // Prime audio on first user interaction
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (audioRef.current) {
+        audioRef.current.play().then(() => {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        });
+      }
+      window.removeEventListener('click', handleUserInteraction);
+    };
+    window.addEventListener('click', handleUserInteraction);
+    return () => window.removeEventListener('click', handleUserInteraction);
+  }, []);
+
+  useEffect(() => {
+    audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
+    audioRef.current.load();
+  }, []);
+
+  const playNotificationSound = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+    }
+  };
+
+  // Update pending order count
+  const updatePendingCount = (orders) => {
+    const pending = orders.filter(order => 
+      order.status === "PENDING" || order.paymentStatus === "PENDING"
+    ).length;
+    setPendingOrderCount(pending);
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       setLoading(true);
@@ -31,6 +74,7 @@ export default function NewOrders() {
         const data = await res.json();
         if (data.status && Array.isArray(data.result?.data)) {
           setOrders(data.result.data);
+          updatePendingCount(data.result.data);
           
           // Save all existing order IDs to localStorage on first load
           const existingOrderIds = data.result.data.map(order => order.id);
@@ -82,11 +126,17 @@ export default function NewOrders() {
             console.log("Found new order:", newOrder);
             setCurrentNewOrder(newOrder);
             setNewOrderModal(true);
+            setHasNewNotifications(true);
+            playNotificationSound();
+            
             // Add this order to localStorage
             const updatedOrderIds = [...existingOrderIds, newOrder.id];
             localStorage.setItem('existingOrderIds', JSON.stringify(updatedOrderIds));
             console.log("Updated localStorage with:", updatedOrderIds);
           }
+          
+          // Update pending count
+          updatePendingCount(data.result.data);
         }
       } catch (err) {
         console.error("Error checking new orders:", err);
@@ -143,6 +193,7 @@ export default function NewOrders() {
             const data = await res.json();
             if (data.status && Array.isArray(data.result?.data)) {
               setOrders(data.result.data);
+              updatePendingCount(data.result.data);
             } else {
               setOrders([]);
               setError(data.message || "Failed to fetch orders");
@@ -183,7 +234,29 @@ export default function NewOrders() {
       if (data.status) {
         setNewOrderModal(false);
         setCurrentNewOrder(null);
+        setHasNewNotifications(false);
         showAlert(`Order ${status === 'ACCEPTED' ? 'accepted' : 'rejected'} successfully!`, 'success');
+        
+        // Refresh orders to update count
+        const fetchOrders = async () => {
+          try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const data = await res.json();
+            if (data.status && Array.isArray(data.result?.data)) {
+              setOrders(data.result.data);
+              updatePendingCount(data.result.data);
+            }
+          } catch (err) {
+            console.error("Error refreshing orders:", err);
+          }
+        };
+        await fetchOrders();
       } else {
         setOrderStatusError(data.message || "Failed to update order status");
         showAlert(data.message || 'Failed to update status', 'danger');
@@ -230,6 +303,8 @@ export default function NewOrders() {
         if (newOrder) {
           setCurrentNewOrder(newOrder);
           setNewOrderModal(true);
+          setHasNewNotifications(true);
+          playNotificationSound();
           const updatedOrderIds = [...existingOrderIds, newOrder.id];
           localStorage.setItem('existingOrderIds', JSON.stringify(updatedOrderIds));
           showAlert('New order found and modal shown!', 'success');
@@ -357,6 +432,36 @@ export default function NewOrders() {
           </Toast.Body>
         </Toast>
       </ToastContainer>
+      
+      {/* Bell Notification Icon */}
+      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 10000 }}>
+        <div className="position-relative">
+          <FaBell 
+            size={24} 
+            className={`cursor-pointer ${hasNewNotifications ? 'text-danger' : 'text-dark'}`}
+            style={{ 
+              animation: hasNewNotifications ? 'shake 0.5s infinite' : 'none',
+              cursor: 'pointer'
+            }}
+            onClick={() => {
+              if (hasNewNotifications) {
+                setHasNewNotifications(false);
+                showAlert('Notifications cleared!', 'info');
+              }
+            }}
+          />
+          {pendingOrderCount > 0 && (
+            <Badge 
+              bg="danger" 
+              className="position-absolute top-0 start-100 translate-middle rounded-pill"
+              style={{ fontSize: '0.7rem', minWidth: '18px' }}
+            >
+              {pendingOrderCount}
+            </Badge>
+          )}
+        </div>
+      </div>
+
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="mb-0">Orders</h4>
         <div className="d-flex gap-2">
@@ -467,6 +572,15 @@ export default function NewOrders() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* CSS for bell shake animation */}
+      <style jsx>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-2px); }
+          75% { transform: translateX(2px); }
+        }
+      `}</style>
     </div>
   );
 }
