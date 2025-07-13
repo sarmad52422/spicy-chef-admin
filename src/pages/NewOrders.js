@@ -12,11 +12,12 @@ export default function NewOrders() {
   const [statusLoading, setStatusLoading] = useState({}); // { [orderId]: 'accept' | 'reject' | null }
   const [statusError, setStatusError] = useState({});
   const [alert, setAlert] = useState({ show: false, message: '', variant: 'success' });
-  
+
   // New order modal states
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [currentNewOrder, setCurrentNewOrder] = useState(null);
   const [orderStatusLoading, setOrderStatusLoading] = useState(false);
+  const [orderStatusLoadingReject, setOrderStatusLoadingReject] = useState(false);
   const [orderStatusError, setOrderStatusError] = useState("");
 
   // Notification states
@@ -53,7 +54,7 @@ export default function NewOrders() {
 
   // Update pending order count
   const updatePendingCount = (orders) => {
-    const pending = orders.filter(order => 
+    const pending = orders.filter(order =>
       order.status === "PENDING" || order.paymentStatus === "PENDING"
     ).length;
     setPendingOrderCount(pending);
@@ -75,7 +76,7 @@ export default function NewOrders() {
         if (data.status && Array.isArray(data.result?.data)) {
           setOrders(data.result.data);
           updatePendingCount(data.result.data);
-          
+
           // Save all existing order IDs to localStorage on first load
           const existingOrderIds = data.result.data.map(order => order.id);
           localStorage.setItem('existingOrderIds', JSON.stringify(existingOrderIds));
@@ -106,35 +107,35 @@ export default function NewOrders() {
         });
         const data = await res.json();
         console.log("Order API response:", data);
-        
+
         if (data.status && Array.isArray(data.result?.data)) {
           // Get existing order IDs from localStorage
           const existingOrderIds = JSON.parse(localStorage.getItem('existingOrderIds') || '[]');
           const currentOrderIds = data.result.data.map(order => order.id);
-          
+
           console.log("Existing order IDs:", existingOrderIds);
           console.log("Current order IDs:", currentOrderIds);
-          
+
           // Find any new order that doesn't exist in localStorage
           const newOrder = data.result.data.find(
             (order) => !existingOrderIds.includes(order.id)
           );
-          
+
           console.log("New order found:", newOrder);
-          
+
           if (newOrder) {
             console.log("Found new order:", newOrder);
             setCurrentNewOrder(newOrder);
             setNewOrderModal(true);
             setHasNewNotifications(true);
             playNotificationSound();
-            
+
             // Add this order to localStorage
             const updatedOrderIds = [...existingOrderIds, newOrder.id];
             localStorage.setItem('existingOrderIds', JSON.stringify(updatedOrderIds));
             console.log("Updated localStorage with:", updatedOrderIds);
           }
-          
+
           // Update pending count
           updatePendingCount(data.result.data);
         }
@@ -175,37 +176,11 @@ export default function NewOrders() {
         },
         body: JSON.stringify({ status }),
       });
+      window.location.reload();
       const data = await res.json();
+      
       if (data.status) {
-        showAlert(`Order ${status === 'ACCEPTED' ? 'accepted' : 'rejected'} successfully!`, 'success');
-        // Refresh orders
-        const fetchOrders = async () => {
-          setLoading(true);
-          setError("");
-          try {
-            const token = localStorage.getItem("token");
-            const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            const data = await res.json();
-            if (data.status && Array.isArray(data.result?.data)) {
-              setOrders(data.result.data);
-              updatePendingCount(data.result.data);
-            } else {
-              setOrders([]);
-              setError(data.message || "Failed to fetch orders");
-            }
-          } catch (err) {
-            setOrders([]);
-            setError("Failed to fetch orders");
-          } finally {
-            setLoading(false);
-          }
-        };
-        await fetchOrders();
+        window.location.reload();
       } else {
         setStatusError(prev => ({ ...prev, [orderId]: data.message || "Failed to update status" }));
         showAlert(data.message || 'Failed to update status', 'danger');
@@ -218,7 +193,11 @@ export default function NewOrders() {
   };
 
   const handleNewOrderAction = async (orderId, status) => {
-    setOrderStatusLoading(true);
+    if (status === "ACCEPTED") {
+      setOrderStatusLoading(true);
+    } else {
+      setOrderStatusLoadingReject(true);
+    }
     setOrderStatusError("");
     try {
       const token = localStorage.getItem("token");
@@ -231,32 +210,9 @@ export default function NewOrders() {
         body: JSON.stringify({ status }),
       });
       const data = await res.json();
+      window.location.reload();
       if (data.status) {
-        setNewOrderModal(false);
-        setCurrentNewOrder(null);
-        setHasNewNotifications(false);
-        showAlert(`Order ${status === 'ACCEPTED' ? 'accepted' : 'rejected'} successfully!`, 'success');
-        
-        // Refresh orders to update count
-        const fetchOrders = async () => {
-          try {
-            const token = localStorage.getItem("token");
-            const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            const data = await res.json();
-            if (data.status && Array.isArray(data.result?.data)) {
-              setOrders(data.result.data);
-              updatePendingCount(data.result.data);
-            }
-          } catch (err) {
-            console.error("Error refreshing orders:", err);
-          }
-        };
-        await fetchOrders();
+        window.location.reload();
       } else {
         setOrderStatusError(data.message || "Failed to update order status");
         showAlert(data.message || 'Failed to update status', 'danger');
@@ -265,13 +221,13 @@ export default function NewOrders() {
       setOrderStatusError("Failed to update order status");
       showAlert('Failed to update status', 'danger');
     }
-    setOrderStatusLoading(false);
-  };
-
-  // Function to clear localStorage (for testing purposes)
-  const clearOrderHistory = () => {
-    localStorage.removeItem('existingOrderIds');
-    showAlert('Order history cleared!', 'info');
+    if (status === "ACCEPTED") {
+      setOrderStatusLoading(false);
+      window.location.reload();
+    } else {
+      setOrderStatusLoadingReject(false);
+      window.location.reload();
+    }
   };
 
   // Function to manually check for new orders (for testing)
@@ -286,20 +242,20 @@ export default function NewOrders() {
       });
       const data = await res.json();
       console.log("Manual check - Order API response:", data);
-      
+
       if (data.status && Array.isArray(data.result?.data)) {
         const existingOrderIds = JSON.parse(localStorage.getItem('existingOrderIds') || '[]');
         const currentOrderIds = data.result.data.map(order => order.id);
-        
+
         console.log("Manual check - Existing order IDs:", existingOrderIds);
         console.log("Manual check - Current order IDs:", currentOrderIds);
-        
+
         const newOrder = data.result.data.find(
           (order) => !existingOrderIds.includes(order.id)
         );
-        
+
         console.log("Manual check - New order found:", newOrder);
-        
+
         if (newOrder) {
           setCurrentNewOrder(newOrder);
           setNewOrderModal(true);
@@ -320,7 +276,7 @@ export default function NewOrders() {
 
   // Filter orders by status for each tab
   const filteredOrders = orders.filter(order => {
-    if (activeTab === "new") return order.status === "PENDING" || order.paymentStatus === "PENDING";
+    if (activeTab === "new") return order.status === "PENDING" && order.paymentStatus === "PENDING";
     if (activeTab === "accepted") return order.status === "ACCEPTED" || order.paymentStatus === "ACCEPTED";
     if (activeTab === "rejected") return order.status === "REJECTED" || order.paymentStatus === "REJECTED";
     return true;
@@ -418,6 +374,23 @@ export default function NewOrders() {
 
   return (
     <div className="container mt-4">
+      {/* Full-page loading overlay */}
+      {loading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(255,255,255,0.7)',
+          zIndex: 20000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Spinner animation="border" variant="primary" style={{ width: 80, height: 80 }} />
+        </div>
+      )}
       {/* Toasts for alerts at top right */}
       <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
         <Toast
@@ -432,14 +405,14 @@ export default function NewOrders() {
           </Toast.Body>
         </Toast>
       </ToastContainer>
-      
+
       {/* Bell Notification Icon */}
-      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 10000 }}>
+      <div className="bell-icon-orders" style={{ zIndex: 10000, position: 'fixed', top: '20px', right: '300px' }}>
         <div className="position-relative">
-          <FaBell 
-            size={24} 
+          <FaBell
+            size={24}
             className={`cursor-pointer ${hasNewNotifications ? 'text-danger' : 'text-dark'}`}
-            style={{ 
+            style={{
               animation: hasNewNotifications ? 'shake 0.5s infinite' : 'none',
               cursor: 'pointer'
             }}
@@ -451,8 +424,8 @@ export default function NewOrders() {
             }}
           />
           {pendingOrderCount > 0 && (
-            <Badge 
-              bg="danger" 
+            <Badge
+              bg="danger"
               className="position-absolute top-0 start-100 translate-middle rounded-pill"
               style={{ fontSize: '0.7rem', minWidth: '18px' }}
             >
@@ -465,19 +438,12 @@ export default function NewOrders() {
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="mb-0">Orders</h4>
         <div className="d-flex gap-2">
-          <button 
-            className="btn btn-outline-primary btn-sm" 
+          <button
+            className="btn btn-outline-primary btn-sm"
             onClick={manualCheckNewOrders}
             title="Manually check for new orders"
           >
             Check New Orders
-          </button>
-          <button 
-            className="btn btn-outline-secondary btn-sm" 
-            onClick={clearOrderHistory}
-            title="Clear order history to test new order detection"
-          >
-            Clear History
           </button>
         </div>
       </div>
@@ -485,32 +451,28 @@ export default function NewOrders() {
       {/* Custom Tab Buttons */}
       <div className="d-flex gap-3 flex-wrap mb-4">
         <button
-          className={`btn ${
-            activeTab === "new" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
+          className={`btn ${activeTab === "new" ? "btn-dark" : "btn-outline-dark"
+            } rounded-pill px-4 shadow-sm`}
           onClick={() => setActiveTab("new")}
         >
           New Orders
         </button>
         <button
-          className={`btn ${
-            activeTab === "accepted" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
+          className={`btn ${activeTab === "accepted" ? "btn-dark" : "btn-outline-dark"
+            } rounded-pill px-4 shadow-sm`}
           onClick={() => setActiveTab("accepted")}
         >
           Accepted
         </button>
         <button
-          className={`btn ${
-            activeTab === "rejected" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
+          className={`btn ${activeTab === "rejected" ? "btn-dark" : "btn-outline-dark"
+            } rounded-pill px-4 shadow-sm`}
           onClick={() => setActiveTab("rejected")}
         >
           Rejected
         </button>
       </div>
 
-      {loading && <Spinner animation="border" />}
       {error && <Alert variant="danger">{error}</Alert>}
 
       {/* Accordion Content Based on Active Tab */}
@@ -567,8 +529,8 @@ export default function NewOrders() {
             {orderStatusLoading ? <Spinner size="sm" animation="border" /> : "Accept"}
           </Button>
           <Button variant="danger" onClick={() => handleNewOrderAction(currentNewOrder.id, "REJECTED")}
-            disabled={orderStatusLoading}>
-            {orderStatusLoading ? <Spinner size="sm" animation="border" /> : "Reject"}
+            disabled={orderStatusLoadingReject}>
+            {orderStatusLoadingReject ? <Spinner size="sm" animation="border" /> : "Reject"}
           </Button>
         </Modal.Footer>
       </Modal>
