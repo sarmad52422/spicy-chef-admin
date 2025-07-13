@@ -140,7 +140,7 @@ const Checkout = () => {
   return (
     <div
       className="container-fluid px-3"
-      style={{ height: "100vh", overflow: "hidden" }}
+      style={{ minHeight: "100vh" }}
     >
       <div className="row min-vh-100 align-items-stretch">
         {/* Left: Customer Info & Payment Options */}
