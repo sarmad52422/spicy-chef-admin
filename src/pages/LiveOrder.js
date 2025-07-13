@@ -258,7 +258,7 @@ const LiveOrder = () => {
   return (
     <div
       className="container-fluid px-3"
-      style={{ height: "100vh", overflow: "hidden" }}
+      style={{ minHeight: "100vh" }}
     >
       <div className="row min-vh-100 align-items-stretch">
         <div className="col-12 col-lg-8 col-md-8 border-end py-4 pe-0">

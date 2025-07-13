@@ -322,7 +322,7 @@ const Menu = () => {
   });
 
   return (
-    <div className="container-fluid px-3" style={{ height: "100vh", overflow: "hidden" }}>
+    <div className="container-fluid px-3" style={{ minHeight: "100vh" }}>
       <Alert type={alert.type} message={alert.message} onClose={() => setAlert({})} />
       <div className="row min-vh-100 align-items-stretch">
         <div className="col-12 py-4 pe-0">

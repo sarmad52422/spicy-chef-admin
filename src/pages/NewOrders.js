@@ -407,7 +407,7 @@ export default function NewOrders() {
       </ToastContainer>
 
       {/* Bell Notification Icon */}
-      <div className="bell-icon-orders" style={{ zIndex: 10000, position: 'fixed', top: '20px', right: '300px' }}>
+      <div className="bell-icon-orders" style={{ position: 'fixed', top: '20px', right: '350px' }}>
         <div className="position-relative">
           <FaBell
             size={24}
