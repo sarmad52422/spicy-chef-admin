@@ -127,6 +127,7 @@ const Menu = () => {
         items: (category.subCategories || []).map(item => ({
           name: item.name,
           price: String(item.price),
+          discount: item.discount || 0,
           image: item.image,
           description: item.description,
           variation: (item.variations || item.variation || []).filter(v => v.name && v.price).map(v => ({

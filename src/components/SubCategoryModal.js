@@ -13,6 +13,7 @@ const SubCategoryModal = ({
 }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [discount, setDiscount] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState('');
@@ -28,12 +29,14 @@ const SubCategoryModal = ({
     if (initialData) {
       setName(initialData.name || '');
       setPrice(initialData.price !== undefined ? String(initialData.price) : '');
+      setDiscount(initialData.discount !== undefined ? String(initialData.discount) : '');
       setDescription(initialData.description || '');
       setPreview(initialData.image || '');
       setVariations(initialData.variations || [{ name: '', price: '' }]);
     } else {
       setName('');
       setPrice('');
+      setDiscount('');
       setDescription('');
       setImage(null);
       setPreview('');
@@ -157,6 +160,7 @@ const SubCategoryModal = ({
     const payload = {
       name: name.trim(),
       price: price === '' ? '0' : String(price),
+      discount: discount === '' ? 0 : Number(discount),
       description: description.trim(),
       image: preview,
       category_id: categoryId,
@@ -196,19 +200,29 @@ const SubCategoryModal = ({
       <Modal.Body>
         <Form>
           <Row className="mb-3">
-            <Col md={6}>
+            <Col md={4}>
               <Form.Control
                 placeholder="Item name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </Col>
-            <Col md={6}>
+            <Col md={4}>
               <Form.Control
                 type="number"
                 placeholder="Price"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                min="0"
+                step="0.01"
+              />
+            </Col>
+            <Col md={4}>
+              <Form.Control
+                type="number"
+                placeholder="Discount"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
                 min="0"
                 step="0.01"
               />

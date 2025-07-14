@@ -12,6 +12,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     {
       name: "",
       price: "",
+      discount: "",
       id: Date.now(),
       image: null,
       description: "",
@@ -32,6 +33,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
           {
             name: String(editData.name || ""),
             price: editData.price !== undefined ? String(editData.price) : "",
+            discount: editData.discount !== undefined ? String(editData.discount) : "",
             id: editData.id || Date.now(),
             image: editData.image || null,
             description: editData.description || "",
@@ -55,6 +57,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
             ? items.map((sub) => ({
                 name: String(sub.name || ""),
                 price: sub.price !== undefined ? String(sub.price) : "",
+                discount: sub.discount !== undefined ? String(sub.discount) : "",
                 id: sub.id || Date.now() + Math.random(),
                 image: sub.image || null,
                 description: sub.description || "",
@@ -70,6 +73,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                 {
                   name: "",
                   price: "",
+                  discount: "",
                   id: Date.now(),
                   image: null,
                   description: "",
@@ -87,6 +91,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
         {
           name: "",
           price: "",
+          discount: "",
           id: Date.now(),
           image: null,
           description: "",
@@ -217,6 +222,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       {
         name: "",
         price: "",
+        discount: "",
         id: Date.now() + Math.random(),
         image: null,
         description: "",
@@ -235,6 +241,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
             {
               name: "",
               price: "",
+              discount: "",
               id: Date.now(),
               image: null,
               description: "",
@@ -299,6 +306,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       .map((sc) => ({
         name: sc.name.trim(),
         price: sc.price === "" ? 0 : Number(sc.price),
+        discount: sc.discount === "" ? 0 : Number(sc.discount),
         id: sc.id || Date.now() + Math.random(),
         image: sc.image,
         description: sc.description || "",
@@ -391,7 +399,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
           {subCategories.map((sub, index) => (
             <div key={sub.id} className="border p-3 rounded mb-4">
               <Row className="mb-2 g-2">
-                <Col md={4}>
+                <Col md={3}>
                   <Form.Control
                     placeholder="Item Name"
                     value={sub.name}
@@ -400,13 +408,23 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                     }
                   />
                 </Col>
-                <Col md={3}>
+                <Col md={2}>
                   <Form.Control
                     placeholder="Price"
                     type="number"
                     value={sub.price}
                     onChange={(e) =>
                       handleChangeSub(index, "price", e.target.value)
+                    }
+                  />
+                </Col>
+                <Col md={2}>
+                  <Form.Control
+                    placeholder="Discount"
+                    type="number"
+                    value={sub.discount}
+                    onChange={(e) =>
+                      handleChangeSub(index, "discount", e.target.value)
                     }
                   />
                 </Col>

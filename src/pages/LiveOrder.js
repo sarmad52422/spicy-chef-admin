@@ -91,6 +91,7 @@ const LiveOrder = () => {
         items: (category.subCategories || []).map(item => ({
           name: item.name,
           price: String(item.price),
+          discount: item.discount || 0,
           image: item.image,
           description: item.description,
           variation: (item.variations || item.variation || []).filter(v => v.name && v.price).map(v => ({
@@ -219,6 +220,7 @@ const LiveOrder = () => {
         const payload = {
           name: data.name,
           price: String(data.price),
+          discount: data.discount || 0,
           image: data.image || data.preview,
           category_id: selectedCategoryId,
           description: data.description,
