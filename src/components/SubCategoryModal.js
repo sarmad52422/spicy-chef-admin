@@ -68,8 +68,14 @@ const SubCategoryModal = ({
   }, [show]);
 
   useEffect(() => {
-    if (initialData && Array.isArray(initialData.modifiers) && modifiers.length > 0) {
-      setSelectedModifiers(initialData.modifiers.map(m => typeof m === 'object' ? m.id : m));
+    if (initialData && modifiers.length > 0) {
+      // Extract modifier IDs from itemModifier array
+      const existingModifierIds = Array.isArray(initialData.itemModifier)
+        ? initialData.itemModifier.map(im => im.modifierId || (im.modifier && im.modifier.id)).filter(Boolean)
+        : Array.isArray(initialData.modifiers)
+          ? initialData.modifiers.map(m => typeof m === 'object' ? m.id : m)
+          : [];
+      setSelectedModifiers(existingModifierIds);
     } else if (!initialData) {
       setSelectedModifiers([]);
     }

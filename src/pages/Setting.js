@@ -4,6 +4,7 @@ import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
 export default function Setting() {
   const [deliveryFee, setDeliveryFee] = useState("");
   const [serviceFee, setServiceFee] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
   const [startTime, setStartTime] = useState("00:00");
   const [closingTime, setClosingTime] = useState("00:00");
   const [selectedDays, setSelectedDays] = useState([
@@ -36,6 +37,7 @@ export default function Setting() {
         if (data.status && data.result?.data?.setting) {
           setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
           setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
+          setDeliveryTime(data.result.data.setting.deliveryTime?.toString() || "");
         }
       } catch (err) {
         setFeeError("Failed to fetch settings.");
@@ -72,6 +74,7 @@ export default function Setting() {
           branch_id: branch.id,
           deliveryFee: Number(deliveryFee),
           serviceFee: Number(serviceFee),
+          deliveryTime: Number(deliveryTime),
         }),
       });
       const data = await res.json();
@@ -117,6 +120,18 @@ export default function Setting() {
               placeholder="Add Service Fee"
               value={serviceFee}
               onChange={(e) => setServiceFee(e.target.value)}
+              disabled={loading}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <strong>Delivery Time</strong> <span className="text-muted">(in minutes)</span>
+            </Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Add Delivery Time"
+              value={deliveryTime}
+              onChange={(e) => setDeliveryTime(e.target.value)}
               disabled={loading}
             />
           </Form.Group>

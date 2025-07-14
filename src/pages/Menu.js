@@ -80,6 +80,7 @@ const Menu = () => {
     } else if (deleteModal.type === "category") {
       await deleteCategoryApi(deleteModal.categoryId);
       setSelectedCategoryId(null);
+      await fetchCategories();
     }
     setDeleteModal({
       show: false,
@@ -169,6 +170,7 @@ const Menu = () => {
         name: category.name,
         image: category.image,
         branch_id: selectedBranch.id,
+        is_deal: !!category.is_deal, // Always send true or false
         items: (category.subCategories || []).map(item => ({
           id: item.id,
           name: item.name,
@@ -303,8 +305,9 @@ const Menu = () => {
   };
 
   const handleSave = async (data, isEdit = false) => {
-    if (isEdit) {
-      await updateCategory(data);
+    // If editTarget exists, it's an edit
+    if (editTarget) {
+      await updateCategory({ ...data, id: editTarget.id });
     } else {
       await createCategory(data);
     }
@@ -497,11 +500,14 @@ const Menu = () => {
                           />
                           <FaTrash
                             className="text-danger cursor-pointer d-hover-inline"
-                            onClick={async () => {
-                              await deleteCategoryApi(cat.id);
-                              setSelectedCategoryId(null);
-                              await fetchCategories();
-                            }}
+                            onClick={() =>
+                              setDeleteModal({
+                                show: true,
+                                type: "category",
+                                categoryId: cat.id,
+                                subIndex: null,
+                              })
+                            }
                           />
                         </div>
                       </div>

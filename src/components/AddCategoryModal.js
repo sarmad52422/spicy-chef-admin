@@ -59,9 +59,12 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
                 image: sub.image || null,
                 description: sub.description || "",
                 variations: sub.variations || sub.variation || [{ name: "", price: "" }],
-                modifiers: Array.isArray(sub.modifiers)
-                  ? sub.modifiers.map(m => typeof m === 'object' ? m.id : m)
-                  : [],
+                // Extract modifier IDs from itemModifier array
+                modifiers: Array.isArray(sub.itemModifier)
+                  ? sub.itemModifier.map(im => im.modifierId || (im.modifier && im.modifier.id)).filter(Boolean)
+                  : Array.isArray(sub.modifiers)
+                    ? sub.modifiers.map(m => typeof m === 'object' ? m.id : m)
+                    : [],
               }))
             : [
                 {
@@ -132,11 +135,15 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       if (modifiers.length > 0 && items.length > 0) {
         setSubCategories(subCategories => subCategories.map((sub, idx) => {
           const item = items[idx] || {};
+          // Extract modifier IDs from itemModifier array
+          const existingModifierIds = Array.isArray(item.itemModifier)
+            ? item.itemModifier.map(im => im.modifierId || (im.modifier && im.modifier.id)).filter(Boolean)
+            : Array.isArray(item.modifiers)
+              ? item.modifiers.map(m => typeof m === 'object' ? m.id : m)
+              : [];
           return {
             ...sub,
-            modifiers: Array.isArray(item.modifiers)
-              ? item.modifiers.map(m => typeof m === 'object' ? m.id : m)
-              : [],
+            modifiers: existingModifierIds,
           };
         }));
       }
