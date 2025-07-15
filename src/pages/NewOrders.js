@@ -41,14 +41,74 @@ export default function NewOrders() {
   }, []);
 
   useEffect(() => {
-    audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
-    audioRef.current.load();
+    // Initialize audio with better error handling
+    const initAudio = () => {
+      try {
+        audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
+        audioRef.current.preload = 'auto';
+        audioRef.current.volume = 1.0;
+        
+        // Add event listeners for audio events
+        audioRef.current.addEventListener('canplaythrough', () => {
+          console.log('Audio loaded and ready to play');
+        });
+        
+        audioRef.current.addEventListener('error', (e) => {
+          console.error('Audio loading error:', e);
+        });
+        
+        audioRef.current.load();
+      } catch (error) {
+        console.error('Audio initialization failed:', error);
+      }
+    };
+    
+    initAudio();
   }, []);
 
   const playNotificationSound = () => {
+    console.log('Attempting to play notification sound');
+    
     if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+      try {
+        audioRef.current.currentTime = 0;
+        audioRef.current.loop = true;
+        
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Audio started playing successfully');
+            })
+            .catch(error => {
+              console.error('Audio play failed:', error);
+              // Try alternative approach for browsers with autoplay restrictions
+              document.addEventListener('click', () => {
+                audioRef.current.play().catch(e => console.log('Retry play failed:', e));
+              }, { once: true });
+            });
+        }
+      } catch (error) {
+        console.error('Error in playNotificationSound:', error);
+      }
+    } else {
+      console.error('Audio element not initialized');
+    }
+  };
+
+  const stopNotificationSound = () => {
+    console.log('Stopping notification sound');
+    
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.loop = false;
+        console.log('Audio stopped successfully');
+      } catch (error) {
+        console.error('Error stopping audio:', error);
+      }
     }
   };
 
@@ -125,6 +185,7 @@ export default function NewOrders() {
 
           if (newOrder) {
             console.log("Found new order:", newOrder);
+            console.log("Auto check - Playing sound for new order");
             setCurrentNewOrder(newOrder);
             setNewOrderModal(true);
             setHasNewNotifications(true);
@@ -176,15 +237,22 @@ export default function NewOrders() {
         },
         body: JSON.stringify({ status }),
       });
+
       window.location.reload();
+
       const data = await res.json();
-      
-      if (data.status) {
+
+      showAlert(`Order ${status.toLowerCase()} successfully!`, 'success');
+
+      setTimeout(() => {
+        setNewOrderModal(false);
+        setCurrentNewOrder(null);
+        setOrderStatusError("");
+        setOrderStatusLoading(false);
+        setOrderStatusLoadingReject(false);
         window.location.reload();
-      } else {
-        setStatusError(prev => ({ ...prev, [orderId]: data.message || "Failed to update status" }));
-        showAlert(data.message || 'Failed to update status', 'danger');
-      }
+      }, 1000);
+
     } catch (err) {
       setStatusError(prev => ({ ...prev, [orderId]: "Failed to update status" }));
       showAlert('Failed to update status', 'danger');
@@ -193,12 +261,16 @@ export default function NewOrders() {
   };
 
   const handleNewOrderAction = async (orderId, status) => {
+    // Stop sound immediately when button is clicked
+    stopNotificationSound();
+    setOrderStatusError("");
+
     if (status === "ACCEPTED") {
       setOrderStatusLoading(true);
     } else {
       setOrderStatusLoadingReject(true);
     }
-    setOrderStatusError("");
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`https://api.eatmeonline.co.uk/api/order/status/${orderId}`, {
@@ -210,23 +282,25 @@ export default function NewOrders() {
         body: JSON.stringify({ status }),
       });
       const data = await res.json();
-      window.location.reload();
-      if (data.status) {
-        window.location.reload();
-      } else {
-        setOrderStatusError(data.message || "Failed to update order status");
-        showAlert(data.message || 'Failed to update status', 'danger');
-      }
+
+      setOrderStatusError(`✅ Order ${status.toLowerCase()} successfully!`);
+
+      // Close modal after showing success message
+      setTimeout(() => {
+        setNewOrderModal(false);
+        setCurrentNewOrder(null);
+        setOrderStatusError("");
+        setOrderStatusLoading(false);
+        setOrderStatusLoadingReject(false);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }, 1000);
     } catch (err) {
-      setOrderStatusError("Failed to update order status");
-      showAlert('Failed to update status', 'danger');
-    }
-    if (status === "ACCEPTED") {
+      setOrderStatusError('Failed to update status');
+    } finally {
       setOrderStatusLoading(false);
-      window.location.reload();
-    } else {
       setOrderStatusLoadingReject(false);
-      window.location.reload();
     }
   };
 
@@ -257,6 +331,7 @@ export default function NewOrders() {
         console.log("Manual check - New order found:", newOrder);
 
         if (newOrder) {
+          console.log('Manual check - Playing sound for new order');
           setCurrentNewOrder(newOrder);
           setNewOrderModal(true);
           setHasNewNotifications(true);
@@ -484,13 +559,37 @@ export default function NewOrders() {
       </Accordion>
 
       {/* New Order Modal */}
-      <Modal show={newOrderModal} onHide={() => setNewOrderModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>New Order Received</Modal.Title>
+      <Modal
+        show={newOrderModal}
+        onHide={() => { }} // Prevent closing
+        centered
+        backdrop="static" // Prevent closing on backdrop click
+        keyboard={false} // Prevent closing with ESC key
+        className="urgent-modal"
+        onClick={(e) => {
+          // Prevent modal clicks from interfering with audio
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        <Modal.Header className={orderStatusError && orderStatusError.includes('✅') ? "bg-success text-white" : "bg-warning text-dark"}>
+          <Modal.Title>
+            {orderStatusError && orderStatusError.includes('✅')
+              ? "✅ Order Processing Complete"
+              : "⚠️ New Order Received - Action Required"
+            }
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body onClick={(e) => {
+          // Prevent any click events from interfering with audio
+          e.preventDefault();
+          e.stopPropagation();
+        }}>
           {currentNewOrder ? (
             <>
+              <div className="alert alert-warning mb-3" role="alert">
+                <strong>🔔 Action Required!</strong> You must accept or reject this order. The modal cannot be closed until you take action.
+              </div>
               <div><strong>Order #{currentNewOrder.orderId || currentNewOrder.id}</strong></div>
               <div className="text-muted mb-2">{currentNewOrder.createdAt ? new Date(currentNewOrder.createdAt).toLocaleString() : "-"}</div>
               {Array.isArray(currentNewOrder.items) && currentNewOrder.items.length > 0 ? (
@@ -517,30 +616,62 @@ export default function NewOrders() {
               ) : (
                 <div>No items</div>
               )}
-              {orderStatusError && <Alert variant="danger" className="mt-2">{orderStatusError}</Alert>}
+              {orderStatusError && (
+                <Alert
+                  variant="success"
+                  className={`mt-2 ${orderStatusError.includes('✅') ? 'text-center fw-bold' : ''}`}
+                  style={orderStatusError.includes('✅') ? { fontSize: '1.1rem' } : {}}
+                >
+                  {orderStatusError}
+                </Alert>
+              )}
             </>
           ) : (
             <div>No order details</div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="success" onClick={() => handleNewOrderAction(currentNewOrder.id, "ACCEPTED")}
-            disabled={orderStatusLoading}>
+          <Button
+            variant="success"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNewOrderAction(currentNewOrder.id, "ACCEPTED");
+            }}
+            disabled={orderStatusLoading}
+          >
             {orderStatusLoading ? <Spinner size="sm" animation="border" /> : "Accept"}
           </Button>
-          <Button variant="danger" onClick={() => handleNewOrderAction(currentNewOrder.id, "REJECTED")}
-            disabled={orderStatusLoadingReject}>
+          <Button
+            variant="danger"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNewOrderAction(currentNewOrder.id, "REJECTED");
+            }}
+            disabled={orderStatusLoadingReject}
+          >
             {orderStatusLoadingReject ? <Spinner size="sm" animation="border" /> : "Reject"}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* CSS for bell shake animation */}
+      {/* CSS for bell shake animation and modal pulse */}
       <style jsx>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-2px); }
           75% { transform: translateX(2px); }
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        :global(.urgent-modal .modal-dialog) {
+          animation: pulse 2s infinite;
+        }
+        :global(.urgent-modal .modal-content) {
+          border: 3px solid #ffc107 !important;
+          box-shadow: 0 0 20px rgba(255, 193, 7, 0.5) !important;
         }
       `}</style>
     </div>
