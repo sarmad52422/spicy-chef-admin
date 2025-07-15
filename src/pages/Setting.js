@@ -1,25 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
 
+const allDays = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
 export default function Setting() {
   const [deliveryFee, setDeliveryFee] = useState("");
   const [serviceFee, setServiceFee] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
-  const [startTime, setStartTime] = useState("00:00");
-  const [closingTime, setClosingTime] = useState("00:00");
-  const [selectedDays, setSelectedDays] = useState([
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ]);
   const [feeStatus, setFeeStatus] = useState(null);
   const [feeError, setFeeError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const allDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  // New: Opening hours state for each day
+  const [openingHours, setOpeningHours] = useState(() =>
+    allDays.reduce((acc, day) => {
+      acc[day.toLowerCase()] = { start: "", close: "" };
+      return acc;
+    }, {})
+  );
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -38,6 +44,7 @@ export default function Setting() {
           setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
           setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
           setDeliveryTime(data.result.data.setting.deliveryTime?.toString() || "");
+          // Optionally: setOpeningHours from backend if available
         }
       } catch (err) {
         setFeeError("Failed to fetch settings.");
@@ -46,14 +53,6 @@ export default function Setting() {
     };
     fetchSettings();
   }, []);
-
-  const handleDayChange = (day) => {
-    if (selectedDays.includes(day)) {
-      setSelectedDays(selectedDays.filter((d) => d !== day));
-    } else {
-      setSelectedDays([...selectedDays, day]);
-    }
-  };
 
   const handleDeliverySave = async () => {
     setFeeStatus(null);
@@ -88,8 +87,10 @@ export default function Setting() {
     }
   };
 
+  // New: Save handler for opening hours
   const handleTimingSave = () => {
-    console.log("Timing Saved:", { startTime, closingTime, selectedDays });
+    console.log("Opening Hours Saved:", openingHours);
+    // TODO: Send openingHours to backend
   };
 
   return (
@@ -146,46 +147,42 @@ export default function Setting() {
         <Col md={6}>
           <Card className="p-4">
             <h5>Restaurant Timing</h5>
-            <Row className="mb-3">
-              <Col>
-                <Form.Label>Start Time</Form.Label>
-                <Form.Select
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                >
-                  {generateTimeOptions()}
-                </Form.Select>
-              </Col>
-              <Col>
-                <Form.Label>Closing Time</Form.Label>
-                <Form.Select
-                  value={closingTime}
-                  onChange={(e) => setClosingTime(e.target.value)}
-                >
-                  {generateTimeOptions()}
-                </Form.Select>
-              </Col>
-            </Row>
-
-            {allDays.map((day) => {
-              const id = `day-${day.toLowerCase()}`;
-              return (
-                <div key={day} className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id={id}
-                    checked={selectedDays.includes(day)}
-                    onChange={() => handleDayChange(day)}
-                    disabled={day === "Sunday"}
-                  />
-                  <label className="form-check-label" htmlFor={id}>
-                    {day}
-                  </label>
-                </div>
-              );
-            })}
-
+            {allDays.map((day) => (
+              <div key={day} className="mb-3 d-flex align-items-center justify-content-between">
+                <div style={{ width: 100, textTransform: "capitalize" }}>{day}</div>
+                <input
+                  type="time"
+                  value={openingHours[day.toLowerCase()].start}
+                  onChange={e =>
+                    setOpeningHours(prev => ({
+                      ...prev,
+                      [day.toLowerCase()]: {
+                        ...prev[day.toLowerCase()],
+                        start: e.target.value
+                      }
+                    }))
+                  }
+                  className="form-control mx-2"
+                  style={{ width: 120 }}
+                />
+                <span>to</span>
+                <input
+                  type="time"
+                  value={openingHours[day.toLowerCase()].close}
+                  onChange={e =>
+                    setOpeningHours(prev => ({
+                      ...prev,
+                      [day.toLowerCase()]: {
+                        ...prev[day.toLowerCase()],
+                        close: e.target.value
+                      }
+                    }))
+                  }
+                  className="form-control mx-2"
+                  style={{ width: 120 }}
+                />
+              </div>
+            ))}
             <Button className="mt-3" onClick={handleTimingSave}>
               Save
             </Button>
@@ -195,16 +192,3 @@ export default function Setting() {
     </div>
   );
 }
-
-const generateTimeOptions = () => {
-  const options = [];
-  for (let i = 0; i < 24; i++) {
-    const time = i.toString().padStart(2, "0") + ":00";
-    options.push(
-      <option key={time} value={time}>
-        {time}
-      </option>
-    );
-  }
-  return options;
-};

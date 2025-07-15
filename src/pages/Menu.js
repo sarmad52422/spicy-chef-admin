@@ -13,6 +13,7 @@ import AddCategoryModal from "../components/AddCategoryModal";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SubCategoryModal from "../components/SubCategoryModal";
 import Alert from "../components/Alert";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const API_BASE_URL = "https://api.eatmeonline.co.uk/api";
 
@@ -44,11 +45,7 @@ const Menu = () => {
     if (!selectedBranch?.id) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/category?branch_id=${selectedBranch.id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category?branch_id=${selectedBranch.id}`);
       const data = await res.json();
       if (data.status && data.result?.data) {
         setCategories(data.result.data);
@@ -137,7 +134,7 @@ const Menu = () => {
           modifiers: item.modifiers || [],
         })),
       };
-      const res = await fetch(`${API_BASE_URL}/admin/category`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -185,7 +182,7 @@ const Menu = () => {
           modifiers: item.modifiers || [],
         })),
       };
-      const res = await fetch(`${API_BASE_URL}/admin/category`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -214,7 +211,7 @@ const Menu = () => {
   const deleteCategoryApi = async (categoryId) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/category/${categoryId}`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category/${categoryId}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -239,7 +236,7 @@ const Menu = () => {
         ...item,
         category_id: categoryId,
       };
-      const res = await fetch(`${API_BASE_URL}/admin/category/item`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category/item`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
@@ -265,7 +262,7 @@ const Menu = () => {
         ...item,
         category_id: categoryId,
       };
-      const res = await fetch(`${API_BASE_URL}/admin/category/item/${item.id}`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category/item/${item.id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
@@ -287,7 +284,7 @@ const Menu = () => {
   const deleteItemApi = async (itemId) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/category/item/${itemId}`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/admin/category/item/${itemId}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });

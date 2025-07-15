@@ -21,6 +21,7 @@ import AddCategoryModal from "../components/AddCategoryModal";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SubCategoryModal from "../components/SubCategoryModal";
 import VariationSelectModal from "../components/VariationSelectModal";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const LiveOrder = () => {
   const dispatch = useDispatch();
@@ -59,11 +60,7 @@ const LiveOrder = () => {
     if (!selectedBranch?.id) return;
     setLoading(true);
     try {
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category?branch_id=${selectedBranch.id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category?branch_id=${selectedBranch.id}`);
       const data = await res.json();
       if (data.status && data.result?.data) {
         setCategories(data.result.data);
@@ -101,11 +98,10 @@ const LiveOrder = () => {
           modifiers: item.modifiers || [],
         })),
       };
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
+      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(payload),
       });
@@ -138,11 +134,10 @@ const LiveOrder = () => {
           modifiers: item.modifiers || [],
         })),
       };
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category`, {
+      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(payload),
       });
@@ -157,11 +152,10 @@ const LiveOrder = () => {
   const deleteCategoryApi = async (categoryId) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/category/${categoryId}`, {
+      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category/${categoryId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       const data = await res.json();
@@ -230,11 +224,10 @@ const LiveOrder = () => {
           })),
           modifiers: data.modifiers || [],
         };
-        await fetch('https://api.eatmeonline.co.uk/api/admin/category/item', {
+        await fetchWithAuth('https://api.eatmeonline.co.uk/api/admin/category/item', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
           body: JSON.stringify(payload),
         });

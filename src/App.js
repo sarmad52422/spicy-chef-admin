@@ -1,6 +1,6 @@
 // src/App.js
 import React from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import LiveOrder from "./pages/LiveOrder";
@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import Login from "./pages/Login";
 import Setting from "./pages/Setting";
 import NewOrders from "./pages/NewOrders";
+import AuthWatcher from "./AuthWatcher";
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -30,8 +31,10 @@ function App() {
       dispatch(initializeMenu(savedState.menu.categories));
     }
   }, [dispatch]);
+
   return (
     <Router>
+      <AuthWatcher />
       <Navbar />
       <Routes>
         <Route path="/login" element={<Login />} />
