@@ -273,7 +273,7 @@ function GlobalNotifications() {
       </ToastContainer>
 
       {/* Global Bell Notification Icon */}
-      <div className="bell-icon-global" style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 1000 }}>
+      <div className="bell-icon-global" style={{ position: 'fixed', top: '20px', right: '400px', zIndex: 1000 }}>
         <div className="position-relative">
           <FaBell
             size={24}
