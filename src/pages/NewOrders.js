@@ -2,12 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Accordion, Button, Row, Col, Badge, Spinner, Alert, Toast, ToastContainer } from "react-bootstrap";
 
 export default function NewOrders() {
-  const [activeTab, setActiveTab] = useState("new");
+  const [activeTab, setActiveTab] = useState("accepted");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [statusLoading, setStatusLoading] = useState({}); // { [orderId]: 'accept' | 'reject' | null }
-  const [statusError, setStatusError] = useState({});
   const [alert, setAlert] = useState({ show: false, message: '', variant: 'success' });
 
   useEffect(() => {
@@ -52,44 +50,14 @@ export default function NewOrders() {
     }, 10);
   };
 
-  const updateOrderStatus = async (orderId, status, buttonType) => {
-    setStatusLoading(prev => ({ ...prev, [orderId]: buttonType }));
-    setStatusError(prev => ({ ...prev, [orderId]: null }));
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/order/status/${orderId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-
-      const data = await res.json();
-
-      showAlert(`Order ${status.toLowerCase()} successfully!`, 'success');
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
-    } catch (err) {
-      setStatusError(prev => ({ ...prev, [orderId]: "Failed to update status" }));
-      showAlert('Failed to update status', 'danger');
-    }
-    setStatusLoading(prev => ({ ...prev, [orderId]: null }));
-  };
-
   // Filter orders by status for each tab
   const filteredOrders = orders.filter(order => {
-    if (activeTab === "new") return order.status === "PENDING" && order.paymentStatus === "PENDING";
     if (activeTab === "accepted") return order.status === "ACCEPTED" || order.paymentStatus === "ACCEPTED";
     if (activeTab === "rejected") return order.status === "REJECTED" || order.paymentStatus === "REJECTED";
     return true;
   });
 
-  const renderOrder = (order, index, showButtons = true, status = null) => (
+  const renderOrder = (order, index, showButtons = false, status = null) => (
     <Accordion.Item
       eventKey={index.toString()}
       key={`${status}-${order.id}-${index}`}
@@ -106,40 +74,12 @@ export default function NewOrders() {
             xs={6}
             className="text-end d-flex align-items-center justify-content-end gap-2"
           >
-            {showButtons ? (
-              <>
-                <Button
-                  variant="outline-success me-2"
-                  size="sm"
-                  disabled={statusLoading[order.id] === 'accept'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateOrderStatus(order.id, "ACCEPTED", 'accept');
-                  }}
-                >
-                  {statusLoading[order.id] === 'accept' ? <Spinner size="sm" animation="border" className="" /> : "Accept"}
-                </Button>
-                <Button
-                  variant="outline-danger me-2"
-                  size="sm"
-                  disabled={statusLoading[order.id] === 'reject'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateOrderStatus(order.id, "REJECTED", 'reject');
-                  }}
-                >
-                  {statusLoading[order.id] === 'reject' ? <Spinner size="sm" animation="border" /> : "Reject"}
-                </Button>
-                {statusError[order.id] && <div className="text-danger small">{statusError[order.id]}</div>}
-              </>
-            ) : (
-              <Badge
-                bg={status === "accepted" ? "success" : "danger"}
-                className="px-3 py-2 me-2"
-              >
-                {status === "accepted" ? "Accepted" : "Rejected"}
-              </Badge>
-            )}
+            <Badge
+              bg={status === "accepted" ? "success" : "danger"}
+              className="px-3 py-2 me-2"
+            >
+              {status === "accepted" ? "Accepted" : "Rejected"}
+            </Badge>
           </Col>
         </Row>
       </Accordion.Header>
@@ -221,13 +161,6 @@ export default function NewOrders() {
       {/* Custom Tab Buttons */}
       <div className="d-flex gap-3 flex-wrap mb-4">
         <button
-          className={`btn ${activeTab === "new" ? "btn-dark" : "btn-outline-dark"
-            } rounded-pill px-4 shadow-sm`}
-          onClick={() => setActiveTab("new")}
-        >
-          New Orders
-        </button>
-        <button
           className={`btn ${activeTab === "accepted" ? "btn-dark" : "btn-outline-dark"
             } rounded-pill px-4 shadow-sm`}
           onClick={() => setActiveTab("accepted")}
@@ -249,7 +182,7 @@ export default function NewOrders() {
       <Accordion>
         {filteredOrders.length === 0 && !loading && <div>No orders</div>}
         {filteredOrders.map((order, idx) =>
-          renderOrder(order, idx, activeTab === "new", activeTab)
+          renderOrder(order, idx, false, activeTab)
         )}
       </Accordion>
     </div>

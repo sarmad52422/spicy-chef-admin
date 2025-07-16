@@ -15,6 +15,8 @@ export default function Setting() {
   const [deliveryFee, setDeliveryFee] = useState("");
   const [serviceFee, setServiceFee] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
+  const [discount, setDiscount] = useState("");
+  const [discountError, setDiscountError] = useState("");
   const [feeStatus, setFeeStatus] = useState(null);
   const [feeError, setFeeError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +33,7 @@ export default function Setting() {
     const fetchSettings = async () => {
       setLoading(true);
       setFeeError(null);
+      setDiscountError("");
       const branch = JSON.parse(localStorage.getItem("selectedBranch"));
       if (!branch?.id) {
         setFeeError("No branch selected.");
@@ -44,6 +47,7 @@ export default function Setting() {
           setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
           setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
           setDeliveryTime(data.result.data.setting.deliveryTime?.toString() || "");
+          setDiscount(data.result.data.setting.discount?.toString() || "");
           // Optionally: setOpeningHours from backend if available
         }
       } catch (err) {
@@ -54,9 +58,44 @@ export default function Setting() {
     fetchSettings();
   }, []);
 
+  // Discount validation function
+  const validateDiscount = (value) => {
+    setDiscountError("");
+    if (value === "") return true;
+    
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      setDiscountError("Discount must be a valid number");
+      return false;
+    }
+    if (numValue < 0) {
+      setDiscountError("Discount cannot be negative");
+      return false;
+    }
+    if (numValue > 100) {
+      setDiscountError("Discount cannot be more than 100%");
+      return false;
+    }
+    return true;
+  };
+
+  // Handle discount change with validation
+  const handleDiscountChange = (e) => {
+    const value = e.target.value;
+    setDiscount(value);
+    validateDiscount(value);
+  };
+
   const handleDeliverySave = async () => {
     setFeeStatus(null);
     setFeeError(null);
+    
+    // Validate discount before saving
+    if (!validateDiscount(discount)) {
+      setFeeError("Please fix the discount validation error before saving.");
+      return;
+    }
+    
     const branch = JSON.parse(localStorage.getItem("selectedBranch"));
     if (!branch?.id) {
       setFeeError("No branch selected.");
@@ -74,16 +113,17 @@ export default function Setting() {
           deliveryFee: Number(deliveryFee),
           serviceFee: Number(serviceFee),
           deliveryTime: Number(deliveryTime),
+          discount: discount ? Number(discount) : 0,
         }),
       });
       const data = await res.json();
       if (data.status) {
-        setFeeStatus("Delivery and service fee updated successfully.");
+        setFeeStatus("Settings updated successfully.");
       } else {
-        setFeeError(data.message || "Failed to update delivery/service fee.");
+        setFeeError(data.message || "Failed to update settings.");
       }
     } catch (err) {
-      setFeeError("Failed to update delivery/service fee.");
+      setFeeError("Failed to update settings.");
     }
   };
 
@@ -135,6 +175,30 @@ export default function Setting() {
               onChange={(e) => setDeliveryTime(e.target.value)}
               disabled={loading}
             />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <strong>Discount</strong> <span className="text-muted">(%)</span>
+            </Form.Label>
+            <Form.Control
+              type="number"
+              placeholder="Add Discount Percentage"
+              value={discount}
+              onChange={handleDiscountChange}
+              disabled={loading}
+              min="0"
+              max="100"
+              step="0.01"
+              isInvalid={!!discountError}
+            />
+            {discountError && (
+              <Form.Control.Feedback type="invalid">
+                {discountError}
+              </Form.Control.Feedback>
+            )}
+            <Form.Text className="text-muted">
+              Enter discount percentage (0-100%). Leave empty for no discount.
+            </Form.Text>
           </Form.Group>
           {feeStatus && <Alert className="alert-success" variant="success">{feeStatus}</Alert>}
           {feeError && <Alert className="alert-success" variant="danger">{feeError}</Alert>}
