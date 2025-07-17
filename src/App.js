@@ -223,7 +223,9 @@ function GlobalNotifications() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ 
+          status: status === "REJECTED" ? "REJECTED" : "ACCEPTED" 
+        }),
       });
       const data = await res.json();
 
