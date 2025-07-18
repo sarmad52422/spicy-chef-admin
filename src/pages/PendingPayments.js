@@ -54,6 +54,7 @@ const PendingPayments = () => {
           <tr>
             <th>Order ID</th>
             <th>Customer Name</th>
+            <th>Phone Number</th>
             <th>Order Type</th>
             <th>Payment Type</th>
             <th>Address</th>
@@ -68,6 +69,7 @@ const PendingPayments = () => {
             <tr key={item.id || idx}>
               <td>{item.orderId}</td>
               <td>{item.fullName}</td>
+              <td>{item.phoneNo || '-'}</td>
               <td>{item.orderType}</td>
               <td>{item.paymentType}</td>
               <td>{item.address}</td>
