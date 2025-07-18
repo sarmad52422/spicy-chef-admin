@@ -20,11 +20,13 @@ export default function Setting() {
   const [feeStatus, setFeeStatus] = useState(null);
   const [feeError, setFeeError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [timingStatus, setTimingStatus] = useState(null);
+  const [timingError, setTimingError] = useState(null);
 
-  // New: Opening hours state for each day
+  // Opening hours state for each day
   const [openingHours, setOpeningHours] = useState(() =>
     allDays.reduce((acc, day) => {
-      acc[day.toLowerCase()] = { start: "", close: "" };
+      acc[day] = { openTime: "09:00", closeTime: "22:00" };
       return acc;
     }, {})
   );
@@ -48,21 +50,53 @@ export default function Setting() {
           setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
           setDeliveryTime(data.result.data.setting.deliveryTime?.toString() || "");
           setDiscount(data.result.data.setting.discount?.toString() || "");
-          // Optionally: setOpeningHours from backend if available
         }
       } catch (err) {
         setFeeError("Failed to fetch settings.");
       }
       setLoading(false);
+
+      // Fetch branch timings
+      fetchBranchTimings();
     };
     fetchSettings();
   }, []);
+
+  const fetchBranchTimings = async () => {
+    const branch = JSON.parse(localStorage.getItem("selectedBranch"));
+    if (!branch?.id) return;
+
+    try {
+      const response = await fetch(`https://api.eatmeonline.co.uk/api/admin/branch-timing/${branch.id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await response.json();
+
+      if (data.status && data.result?.data) {
+        const timings = data.result.data;
+        const updatedHours = { ...openingHours };
+
+        timings.forEach(timing => {
+          updatedHours[timing.day] = {
+            openTime: timing.openTime,
+            closeTime: timing.closeTime
+          };
+        });
+
+        setOpeningHours(updatedHours);
+      }
+    } catch (error) {
+      setTimingError("Failed to fetch branch timings");
+    }
+  };
 
   // Discount validation function
   const validateDiscount = (value) => {
     setDiscountError("");
     if (value === "") return true;
-    
+
     const numValue = Number(value);
     if (isNaN(numValue)) {
       setDiscountError("Discount must be a valid number");
@@ -89,13 +123,13 @@ export default function Setting() {
   const handleDeliverySave = async () => {
     setFeeStatus(null);
     setFeeError(null);
-    
+
     // Validate discount before saving
     if (!validateDiscount(discount)) {
       setFeeError("Please fix the discount validation error before saving.");
       return;
     }
-    
+
     const branch = JSON.parse(localStorage.getItem("selectedBranch"));
     if (!branch?.id) {
       setFeeError("No branch selected.");
@@ -127,10 +161,45 @@ export default function Setting() {
     }
   };
 
-  // New: Save handler for opening hours
-  const handleTimingSave = () => {
-    console.log("Opening Hours Saved:", openingHours);
-    // TODO: Send openingHours to backend
+  // Save handler for opening hours
+  const handleTimingSave = async () => {
+    setTimingStatus(null);
+    setTimingError(null);
+
+    const branch = JSON.parse(localStorage.getItem("selectedBranch"));
+    if (!branch?.id) {
+      setTimingError("No branch selected.");
+      return;
+    }
+
+    try {
+      const timingsArray = Object.entries(openingHours).map(([day, times]) => ({
+        day,
+        openTime: times.openTime,
+        closeTime: times.closeTime
+      }));
+
+      const response = await fetch("https://api.eatmeonline.co.uk/api/admin/branch-timing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          branchId: branch.id,
+          timings: timingsArray
+        }),
+      });
+
+      const data = await response.json();
+      if (data.status) {
+        setTimingStatus("Restaurant timing updated successfully.");
+      } else {
+        setTimingError(data.message || "Failed to update restaurant timing.");
+      }
+    } catch (error) {
+      setTimingError("Failed to update restaurant timing.");
+    }
   };
 
   return (
@@ -213,44 +282,48 @@ export default function Setting() {
             <h5>Restaurant Timing</h5>
             {allDays.map((day) => (
               <div key={day} className="mb-3 d-flex align-items-center justify-content-between">
-                <div style={{ width: 100, textTransform: "capitalize" }}>{day}</div>
+                <div style={{ width: 100 }}>{day}</div>
                 <input
                   type="time"
-                  value={openingHours[day.toLowerCase()].start}
+                  value={openingHours[day].openTime}
                   onChange={e =>
                     setOpeningHours(prev => ({
                       ...prev,
-                      [day.toLowerCase()]: {
-                        ...prev[day.toLowerCase()],
-                        start: e.target.value
+                      [day]: {
+                        ...prev[day],
+                        openTime: e.target.value
                       }
                     }))
                   }
                   className="form-control mx-2"
-                  style={{ width: 120 }}
+                  style={{ width: 130 }}
                 />
                 <span>to</span>
                 <input
                   type="time"
-                  value={openingHours[day.toLowerCase()].close}
+                  value={openingHours[day].closeTime}
                   onChange={e =>
                     setOpeningHours(prev => ({
                       ...prev,
-                      [day.toLowerCase()]: {
-                        ...prev[day.toLowerCase()],
-                        close: e.target.value
+                      [day]: {
+                        ...prev[day],
+                        closeTime: e.target.value
                       }
                     }))
                   }
                   className="form-control mx-2"
-                  style={{ width: 120 }}
+                  style={{ width: 130 }}
                 />
               </div>
             ))}
+
             <Button className="mt-3" onClick={handleTimingSave}>
               Save
             </Button>
+
           </Card>
+          {timingStatus && <Alert variant="success" className="mt-3 absolute top-0 right-0">{timingStatus}</Alert>}
+          {timingError && <Alert variant="danger" className="mt-3 absolute top-0 right-0">{timingError}</Alert>}
         </Col>
       </Row>
     </div>
