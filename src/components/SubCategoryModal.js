@@ -122,11 +122,6 @@ const SubCategoryModal = ({
     }
   };
 
-  const removeImage = () => {
-    setImage(null);
-    setPreview('');
-  };
-
   const handleVariationChange = (index, field, value) => {
     const updated = variations.map((v, i) =>
       i === index ? { ...v, [field]: value } : v
@@ -150,10 +145,6 @@ const SubCategoryModal = ({
   const handleSubmit = async () => {
     if (!name.trim()) {
       alert('Item name is required');
-      return;
-    }
-    if (!preview) {
-      alert('Item image is required');
       return;
     }
 
@@ -242,7 +233,7 @@ const SubCategoryModal = ({
 
           <Form.Group className="mb-3">
             <Form.Label>Item Image (Required)</Form.Label>
-            {preview ? (
+            {preview && (
               <div className="d-flex align-items-center gap-2 mb-2">
                 <Image 
                   src={preview} 
@@ -254,27 +245,13 @@ const SubCategoryModal = ({
                     objectFit: "cover",
                   }} 
                 />
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={removeImage}
-                >
-                  Remove
-                </Button>
               </div>
-            ) : (
-              <>
-                <Form.Control
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  required
-                />
-                <Form.Text className="text-danger">
-                  Image is required for menu items
-                </Form.Text>
-              </>
             )}
+            <Form.Control
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -352,7 +329,7 @@ const SubCategoryModal = ({
         <Button
           variant="primary"
           onClick={handleSubmit}
-          disabled={!name.trim() || !preview || uploading}
+          disabled={!name.trim() || uploading}
         >
           {uploading ? 'Saving...' : initialData ? 'Save Changes' : 'Add Item'}
         </Button>
