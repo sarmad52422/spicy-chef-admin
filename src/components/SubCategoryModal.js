@@ -32,7 +32,16 @@ const SubCategoryModal = ({
       setDiscount(initialData.discount !== undefined ? String(initialData.discount) : '');
       setDescription(initialData.description || '');
       setPreview(initialData.image || '');
-      setVariations(initialData.variations || [{ name: '', price: '' }]);
+      // Handle variations from either variations or variation field
+      const existingVariations = initialData.variations || initialData.variation || [];
+      setVariations(existingVariations.length > 0 
+        ? existingVariations.map(v => ({
+            id: v.id,
+            name: v.name || '',
+            price: v.price !== undefined ? String(v.price) : ''
+          }))
+        : [{ name: '', price: '' }]
+      );
     } else {
       setName('');
       setPrice('');
@@ -191,14 +200,14 @@ const SubCategoryModal = ({
       <Modal.Body>
         <Form>
           <Row className="mb-3">
-            <Col md={4}>
+            <Col md={6}>
               <Form.Control
                 placeholder="Item name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </Col>
-            <Col md={4}>
+            <Col md={6} >
               <Form.Control
                 type="number"
                 placeholder="Price"
@@ -208,7 +217,7 @@ const SubCategoryModal = ({
                 step="0.01"
               />
             </Col>
-            <Col md={4}>
+            <Col md={12} className='mt-2'>
               <Form.Control
                 type="number"
                 placeholder="Discount"

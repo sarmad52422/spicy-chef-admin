@@ -259,8 +259,24 @@ const Menu = () => {
     setLoading(true);
     try {
       const payload = {
-        ...item,
+        id: item.id,
+        name: item.name.trim(),
+        image: item.image || item.preview || null,
+        branch_id: selectedBranch.id,
+        is_deal: false,
+        items: [],
         category_id: categoryId,
+        price: item.price === '' ? '0' : String(item.price),
+        discount: item.discount === '' ? 0 : Number(item.discount),
+        description: item.description?.trim() || '',
+        variation: (item.variations || item.variation || [])
+          .filter(v => v.name && v.price !== undefined && v.price !== '')
+          .map(v => ({
+            name: v.name.trim(),
+            price: String(v.price),
+            id: v.id || undefined
+          })),
+        modifiers: item.modifiers || []
       };
       const res = await fetchWithAuth(`${API_BASE_URL}/admin/category/item/${item.id}`, {
         method: "PUT",
@@ -423,16 +439,8 @@ const Menu = () => {
                           <FaEdit
                             className="text-primary cursor-pointer sub-category-icon"
                             onClick={() => {
-                              setEditTarget({
-                                ...item,
-                                isSubCategory: true,
-                                categoryId: selectedCategory.id,
-                                subIndex: index,
-                                modifiers: Array.isArray(item.itemModifier)
-                                  ? item.itemModifier.map(im => im.modifierId)
-                                  : [],
-                              });
-                              setShowAddModal(true);
+                              setSubCategoryEditData(item);
+                              setShowSubCategoryModal(true);
                             }}
                           />
                           <FaTrash
