@@ -1,7 +1,21 @@
 // src/App.js
 import React, { useState, useEffect, useRef } from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { Modal, Button, Spinner, Alert, Badge, Toast, ToastContainer } from "react-bootstrap";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import {
+  Modal,
+  Button,
+  Spinner,
+  Alert,
+  Badge,
+  Toast,
+  ToastContainer,
+} from "react-bootstrap";
 import { FaBell } from "react-icons/fa";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
@@ -16,6 +30,8 @@ import Login from "./pages/Login";
 import Setting from "./pages/Setting";
 import NewOrders from "./pages/NewOrders";
 import AuthWatcher from "./AuthWatcher";
+import OrderDetails from "./components/orderDetails";
+import ReceiptWrapper from "./components/printerWrapper";
 
 const NOTIFICATION_SOUND_URL = "/sound/notification.mp3";
 
@@ -25,18 +41,25 @@ function PrivateRoute({ children }) {
 }
 
 function GlobalNotifications() {
-  const [alert, setAlert] = useState({ show: false, message: '', variant: 'success' });
+  const [alert, setAlert] = useState({
+    show: false,
+    message: "",
+    variant: "success",
+  });
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [currentNewOrder, setCurrentNewOrder] = useState(null);
   const [orderStatusLoading, setOrderStatusLoading] = useState(false);
-  const [orderStatusLoadingReject, setOrderStatusLoadingReject] = useState(false);
+  const [orderStatusLoadingReject, setOrderStatusLoadingReject] =
+    useState(false);
   const [orderStatusError, setOrderStatusError] = useState("");
   const [pendingOrderCount, setPendingOrderCount] = useState(0);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
   const audioRef = useRef(null);
   const location = useLocation();
 
-  // Prime audio on first user interaction
+  // Audio initialization and handlers
   useEffect(() => {
     const handleUserInteraction = () => {
       if (audioRef.current) {
@@ -45,148 +68,125 @@ function GlobalNotifications() {
           audioRef.current.currentTime = 0;
         });
       }
-      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener("click", handleUserInteraction);
     };
-    window.addEventListener('click', handleUserInteraction);
-    return () => window.removeEventListener('click', handleUserInteraction);
+    window.addEventListener("click", handleUserInteraction);
+    return () => window.removeEventListener("click", handleUserInteraction);
   }, []);
 
   useEffect(() => {
-    // Initialize audio with better error handling
     const initAudio = () => {
       try {
         audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
-        audioRef.current.preload = 'auto';
+        audioRef.current.preload = "auto";
         audioRef.current.volume = 1.0;
-        
-        // Add event listeners for audio events
-        audioRef.current.addEventListener('canplaythrough', () => {
-          console.log('Audio loaded and ready to play');
+        audioRef.current.addEventListener("canplaythrough", () => {
+          console.log("Audio loaded and ready to play");
         });
-        
-        audioRef.current.addEventListener('error', (e) => {
-          console.error('Audio loading error:', e);
+        audioRef.current.addEventListener("error", (e) => {
+          console.error("Audio loading error:", e);
         });
-        
         audioRef.current.load();
       } catch (error) {
-        console.error('Audio initialization failed:', error);
+        console.error("Audio initialization failed:", error);
       }
     };
-    
     initAudio();
   }, []);
 
   const playNotificationSound = () => {
-    console.log('Attempting to play notification sound');
-    
     if (audioRef.current) {
       try {
         audioRef.current.currentTime = 0;
         audioRef.current.loop = true;
-        
         const playPromise = audioRef.current.play();
-        
         if (playPromise !== undefined) {
           playPromise
-            .then(() => {
-              console.log('Audio started playing successfully');
-            })
-            .catch(error => {
-              console.error('Audio play failed:', error);
-              // Try alternative approach for browsers with autoplay restrictions
-              document.addEventListener('click', () => {
-                audioRef.current.play().catch(e => console.log('Retry play failed:', e));
-              }, { once: true });
+            .then(() => console.log("Audio started playing successfully"))
+            .catch((error) => {
+              console.error("Audio play failed:", error);
+              document.addEventListener(
+                "click",
+                () => {
+                  audioRef.current
+                    .play()
+                    .catch((e) => console.log("Retry play failed:", e));
+                },
+                { once: true }
+              );
             });
         }
       } catch (error) {
-        console.error('Error in playNotificationSound:', error);
+        console.error("Error in playNotificationSound:", error);
       }
-    } else {
-      console.error('Audio element not initialized');
     }
   };
 
   const stopNotificationSound = () => {
-    console.log('Stopping notification sound');
-    
     if (audioRef.current) {
       try {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
         audioRef.current.loop = false;
-        console.log('Audio stopped successfully');
       } catch (error) {
-        console.error('Error stopping audio:', error);
+        console.error("Error stopping audio:", error);
       }
     }
   };
 
-  // Update pending order count
   const updatePendingCount = (orders) => {
-    const pending = orders.filter(order =>
-      order.status === "PENDING" || order.paymentStatus === "PENDING"
+    const pending = orders.filter(
+      (order) => order.status === "PENDING" || order.paymentStatus === "PENDING"
     ).length;
     setPendingOrderCount(pending);
   };
 
-  // Helper to show alert with correct variant
-  const showAlert = (message, variant = 'success') => {
-    setAlert({ show: false, message: '', variant: 'success' }); // Clear first
+  const showAlert = (message, variant = "success") => {
+    setAlert({ show: false, message: "", variant: "success" });
     setTimeout(() => {
       setAlert({ show: true, message, variant });
-      setTimeout(() => setAlert({ show: false, message: '', variant: 'success' }), 3000);
+      setTimeout(
+        () => setAlert({ show: false, message: "", variant: "success" }),
+        3000
+      );
     }, 10);
   };
 
-  // Check for new orders and show modal
   useEffect(() => {
-    // Only run notifications if user is authenticated
     const token = localStorage.getItem("token");
     if (!token) return;
 
     const checkNewOrders = async () => {
       try {
-        const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+        const res = await fetch("http://localhost:5000/api/order", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         });
         const data = await res.json();
-        console.log("Order API response:", data);
 
         if (data.status && Array.isArray(data.result?.data)) {
-          // Get existing order IDs from localStorage
-          const existingOrderIds = JSON.parse(localStorage.getItem('existingOrderIds') || '[]');
-          const currentOrderIds = data.result.data.map(order => order.id);
+          const existingOrderIds = JSON.parse(
+            localStorage.getItem("existingOrderIds") || "[]"
+          );
+          const currentOrderIds = data.result.data.map((order) => order.id);
 
-          console.log("Existing order IDs:", existingOrderIds);
-          console.log("Current order IDs:", currentOrderIds);
-
-          // Find any new order that doesn't exist in localStorage
           const newOrder = data.result.data.find(
             (order) => !existingOrderIds.includes(order.id)
           );
 
-          console.log("New order found:", newOrder);
-
           if (newOrder) {
-            console.log("Found new order:", newOrder);
-            console.log("Auto check - Playing sound for new order");
             setCurrentNewOrder(newOrder);
             setNewOrderModal(true);
             setHasNewNotifications(true);
             playNotificationSound();
-
-            // Add this order to localStorage
-            const updatedOrderIds = [...existingOrderIds, newOrder.id];
-            localStorage.setItem('existingOrderIds', JSON.stringify(updatedOrderIds));
-            console.log("Updated localStorage with:", updatedOrderIds);
+            localStorage.setItem(
+              "existingOrderIds",
+              JSON.stringify([...existingOrderIds, newOrder.id])
+            );
           }
 
-          // Update pending count
           updatePendingCount(data.result.data);
         }
       } catch (err) {
@@ -194,18 +194,12 @@ function GlobalNotifications() {
       }
     };
 
-    // Initial check
     checkNewOrders();
-
-    // Set up polling every 5 seconds
-    const interval = setInterval(checkNewOrders, 5000);
-
-    // Cleanup interval on unmount
+    const interval = setInterval(checkNewOrders, 2000);
     return () => clearInterval(interval);
   }, []);
 
   const handleNewOrderAction = async (orderId, status) => {
-    // Stop sound immediately when button is clicked
     stopNotificationSound();
     setOrderStatusError("");
 
@@ -217,77 +211,155 @@ function GlobalNotifications() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/order/status/${orderId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          status: status === "REJECTED" ? "REJECTED" : "ACCEPTED" 
-        }),
-      });
+      const res = await fetch(
+        `http://localhost:5000/api/order/status/${orderId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: status === "REJECTED" ? "REJECTED" : "ACCEPTED",
+          }),
+        }
+      );
       const data = await res.json();
-
+      console.log(`Data = ${JSON.stringify(data)}`);
       setOrderStatusError(`✅ Order ${status.toLowerCase()} successfully!`);
 
-      // Close modal after showing success message
+      if (status === "ACCEPTED") {
+        calculateAndPrintBill();
+      }
+
       setTimeout(() => {
         setNewOrderModal(false);
         setCurrentNewOrder(null);
         setOrderStatusError("");
         setOrderStatusLoading(false);
         setOrderStatusLoadingReject(false);
-        // Trigger refresh only on NewOrders page
-        if (location.pathname === '/new-orders') {
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+
+        if (status === "ACCEPTED") {
+          setShowReceipt(true);
+        }
+
+        if (location.pathname === "/new-orders") {
+          setTimeout(() => window.location.reload(), 1000);
         }
       }, 1000);
     } catch (err) {
-      setOrderStatusError('Failed to update status');
+      console.log(err);
+      setOrderStatusError("Failed to update status");
     } finally {
       setOrderStatusLoading(false);
       setOrderStatusLoadingReject(false);
     }
   };
+  const calculateAndPrintBill = () => {
+    const subtotalValue = currentNewOrder.items.reduce((acc, item) => {
+      const price = Number(
+        item.item?.price ||
+          item.variation?.price ||
+          item.modifierOption?.price ||
+          0
+      );
+      const quantity = item.quantity || 1;
+      return acc + price * quantity;
+    }, 0);
 
-  // Only show notifications if user is authenticated
+    const discountValue = Number(currentNewOrder.discount || 0);
+    const serviceFeeValue = Number(currentNewOrder.serviceFee || 0);
+    const deliveryFeeValue = Number(currentNewOrder.deliveryFee || 0);
+
+    const orderTotalValue = subtotalValue - discountValue;
+
+    const totalAmountValue =
+      orderTotalValue + serviceFeeValue + deliveryFeeValue;
+    console.log(`Order total = ${orderTotalValue}`)
+    setReceiptData({
+      orderId: currentNewOrder.orderId || currentNewOrder.id,
+      address: currentNewOrder.address || "N/A",
+      date: currentNewOrder.createdAt || new Date(),
+      serviceFee: `£${serviceFeeValue.toFixed(2)}`,
+      deliveryFee: `£${deliveryFeeValue.toFixed(2)}`,
+      items: currentNewOrder.items.map((item) => {
+        const price = Number(
+          item.item?.price ||
+            item.variation?.price ||
+            item.modifierOption?.price ||
+            0
+        );
+        return {
+          name:
+            item.item?.name ||
+            item.variation?.item?.name ||
+            item.modifierOption?.name ||
+            "Unknown Item",
+          quantity: item.quantity || 1,
+          totalAmount: `£${(price * (item.quantity || 1)).toFixed(2)}`,
+        };
+      }),
+      subtotal: `£${subtotalValue.toFixed(2)}`,
+      orderTotal: `£${orderTotalValue.toFixed(2)}`,
+      totalAmount: `£${totalAmountValue.toFixed(2)}`,
+      discount: discountValue > 0 ? `£${discountValue.toFixed(2)}` : "£0.00",
+      tax: `£${Number(currentNewOrder.tax || 0).toFixed(2)}`,
+      tip: `£${Number(currentNewOrder.tip || 0).toFixed(2)}`,
+      total: `£${Number(currentNewOrder.total || totalAmountValue).toFixed(2)}`,
+      paymentMethod: currentNewOrder.paymentType || "Cash",
+      paymentStatus: currentNewOrder.paymentStatus || "PAID",
+    });
+  };
+
   const token = localStorage.getItem("token");
   if (!token) return null;
 
   return (
     <>
-      {/* Toasts for alerts at top right */}
-      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
+      <ToastContainer
+        position="top-end"
+        className="p-3"
+        style={{ zIndex: 9999 }}
+      >
         <Toast
           show={alert.show}
           onClose={() => setAlert({ ...alert, show: false })}
-          bg={alert.variant === 'success' ? 'success' : alert.variant === 'danger' ? 'danger' : 'info'}
+          bg={
+            alert.variant === "success"
+              ? "success"
+              : alert.variant === "danger"
+              ? "danger"
+              : "info"
+          }
           delay={3000}
           autohide
         >
-          <Toast.Body className={alert.variant === 'success' ? 'text-white' : ''}>
+          <Toast.Body
+            className={alert.variant === "success" ? "text-white" : ""}
+          >
             {alert.message}
           </Toast.Body>
         </Toast>
       </ToastContainer>
 
-      {/* Global Bell Notification Icon */}
-      <div className="bell-icon-global" style={{ position: 'fixed', top: '20px', right: '400px', zIndex: 1000 }}>
+      <div
+        className="bell-icon-global"
+        style={{ position: "fixed", top: "20px", right: "400px", zIndex: 1000 }}
+      >
         <div className="position-relative">
           <FaBell
             size={24}
-            className={`cursor-pointer ${hasNewNotifications ? 'text-danger' : 'text-dark'}`}
+            className={`cursor-pointer ${
+              hasNewNotifications ? "text-danger" : "text-dark"
+            }`}
             style={{
-              animation: hasNewNotifications ? 'shake 0.5s infinite' : 'none',
-              cursor: 'pointer'
+              animation: hasNewNotifications ? "shake 0.5s infinite" : "none",
+              cursor: "pointer",
             }}
             onClick={() => {
               if (hasNewNotifications) {
                 setHasNewNotifications(false);
-                showAlert('Notifications cleared!', 'info');
+                showAlert("Notifications cleared!", "info");
               }
             }}
           />
@@ -295,7 +367,7 @@ function GlobalNotifications() {
             <Badge
               bg="danger"
               className="position-absolute top-0 start-100 translate-middle rounded-pill"
-              style={{ fontSize: '0.7rem', minWidth: '18px' }}
+              style={{ fontSize: "0.7rem", minWidth: "18px" }}
             >
               {pendingOrderCount}
             </Badge>
@@ -303,58 +375,80 @@ function GlobalNotifications() {
         </div>
       </div>
 
-      {/* Global New Order Modal */}
       <Modal
         show={newOrderModal}
-        onHide={() => { }} // Prevent closing
+        onHide={() => {}}
         centered
-        backdrop="static" // Prevent closing on backdrop click
-        keyboard={false} // Prevent closing with ESC key
+        backdrop="static"
+        keyboard={false}
         className="urgent-modal"
         onClick={(e) => {
-          // Prevent modal clicks from interfering with audio
           e.preventDefault();
           e.stopPropagation();
         }}
       >
-        <Modal.Header className={orderStatusError && orderStatusError.includes('✅') ? "bg-success text-white" : "bg-warning text-dark"}>
+        <Modal.Header
+          className={
+            orderStatusError && orderStatusError.includes("✅")
+              ? "bg-success text-white"
+              : "bg-warning text-dark"
+          }
+        >
           <Modal.Title>
-            {orderStatusError && orderStatusError.includes('✅')
+            {orderStatusError && orderStatusError.includes("✅")
               ? "✅ Order Processing Complete"
-              : "⚠️ New Order Received - Action Required"
-            }
+              : "⚠️ New Order Received - Action Required"}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body onClick={(e) => {
-          // Prevent any click events from interfering with audio
-          e.preventDefault();
-          e.stopPropagation();
-        }}>
+        <Modal.Body
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           {currentNewOrder ? (
             <>
               <div className="alert alert-warning mb-3" role="alert">
-                <strong>🔔 Action Required!</strong> You must accept or reject this order. The modal cannot be closed until you take action.
+                <strong>🔔 Action Required!</strong> You must accept or reject
+                this order.
               </div>
-              <div><strong>Order #{currentNewOrder.orderId || currentNewOrder.id}</strong></div>
-              <div className="text-muted mb-2">{currentNewOrder.createdAt ? new Date(currentNewOrder.createdAt).toLocaleString() : "-"}</div>
-              {Array.isArray(currentNewOrder.items) && currentNewOrder.items.length > 0 ? (
+              <div>
+                <strong>
+                  Order #{currentNewOrder.orderId || currentNewOrder.id}
+                </strong>
+              </div>
+              <div className="text-muted mb-2">
+                {currentNewOrder.createdAt
+                  ? new Date(currentNewOrder.createdAt).toLocaleString()
+                  : "-"}
+              </div>
+              {Array.isArray(currentNewOrder.items) &&
+              currentNewOrder.items.length > 0 ? (
                 currentNewOrder.items.map((item, i) => {
-                  let itemName = "-";
-                  let itemPrice = "-";
-                  if (item.item && item.item.name) {
-                    itemName = item.item.name;
-                    itemPrice = item.item.price;
-                  } else if (item.variation && item.variation.item && item.variation.item.name) {
-                    itemName = item.variation.item.name;
-                    itemPrice = item.variation.price || item.variation.item.price;
-                  } else if (item.modifierOption && item.modifierOption.name) {
-                    itemName = item.modifierOption.name;
-                    itemPrice = item.modifierOption.price;
-                  }
+                  let itemName =
+                    item.item?.name ||
+                    item.variation?.item?.name ||
+                    item.modifierOption?.name ||
+                    "Unknown Item";
+                  let itemPrice =
+                    item.item?.price ||
+                    item.variation?.price ||
+                    item.modifierOption?.price ||
+                    0;
                   return (
-                    <div key={i} className="mb-2 d-flex justify-content-between align-items-center">
-                      <div><strong>{itemName}</strong></div>
-                      <div><strong>Qty:</strong> {item.quantity} <span className="ms-3"><strong>Price:</strong> £{itemPrice}</span></div>
+                    <div
+                      key={i}
+                      className="mb-2 d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        <strong>{itemName}</strong>
+                      </div>
+                      <div>
+                        <strong>Qty:</strong> {item.quantity}{" "}
+                        <span className="ms-3">
+                          <strong>Price:</strong> £{0}
+                        </span>
+                      </div>
                     </div>
                   );
                 })
@@ -364,8 +458,14 @@ function GlobalNotifications() {
               {orderStatusError && (
                 <Alert
                   variant="success"
-                  className={`mt-2 ${orderStatusError.includes('✅') ? 'text-center fw-bold' : ''}`}
-                  style={orderStatusError.includes('✅') ? { fontSize: '1.1rem' } : {}}
+                  className={`mt-2 ${
+                    orderStatusError.includes("✅") ? "text-center fw-bold" : ""
+                  }`}
+                  style={
+                    orderStatusError.includes("✅")
+                      ? { fontSize: "1.1rem" }
+                      : {}
+                  }
                 >
                   {orderStatusError}
                 </Alert>
@@ -384,7 +484,11 @@ function GlobalNotifications() {
             }}
             disabled={orderStatusLoading}
           >
-            {orderStatusLoading ? <Spinner size="sm" animation="border" /> : "Accept"}
+            {orderStatusLoading ? (
+              <Spinner size="sm" animation="border" />
+            ) : (
+              "Accept"
+            )}
           </Button>
           <Button
             variant="danger"
@@ -394,22 +498,84 @@ function GlobalNotifications() {
             }}
             disabled={orderStatusLoadingReject}
           >
-            {orderStatusLoadingReject ? <Spinner size="sm" animation="border" /> : "Reject"}
+            {orderStatusLoadingReject ? (
+              <Spinner size="sm" animation="border" />
+            ) : (
+              "Reject"
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* CSS for bell shake animation and modal pulse */}
+      {/* Receipt Modal */}
+      <Modal
+        show={showReceipt}
+        onHide={() => setShowReceipt(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Order Receipt</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {receiptData && (
+            <ReceiptWrapper
+              orderId={receiptData.orderId}
+              address={receiptData.address}
+              date={receiptData.date}
+              items={receiptData.items}
+              subtotal={receiptData.subtotal}
+              discount={receiptData.discount}
+              tax={receiptData.tax}
+              tip={receiptData.tip}
+              total={receiptData.total}
+              serviceFee={receiptData.serviceFee}
+              paymentMethod={receiptData.paymentMethod}
+              paymentStatus={receiptData.paymentStatus}
+              orderTotal={receiptData.orderTotal}
+              deliveryFee={receiptData.deliveryFee}
+            />
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowReceipt(false)}>
+            Close
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setShowReceipt(false);
+              window.print();
+            }}
+          >
+            Print Receipt
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       <style jsx>{`
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-2px); }
-          75% { transform: translateX(2px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          25% {
+            transform: translateX(-2px);
+          }
+          75% {
+            transform: translateX(2px);
+          }
         }
         @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
+          }
         }
         :global(.urgent-modal .modal-dialog) {
           animation: pulse 2s infinite;
@@ -427,7 +593,6 @@ function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Load initial state when app mounts
     const savedState = JSON.parse(localStorage.getItem("reduxState")) || {};
     if (savedState.menu?.categories) {
       dispatch(initializeMenu(savedState.menu.categories));
@@ -441,20 +606,23 @@ function App() {
       <GlobalNotifications />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/*" element={
-          <PrivateRoute>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/live-order" element={<LiveOrder />} />
-              <Route path="/pending-payments" element={<PendingPayments />} />
-              <Route path="/modifier" element={<Modifier />} />
-              <Route path="/setting" element={<Setting />} />
-              <Route path="/new-orders" element={<NewOrders />} />
-              <Route path="/checkout" element={<Checkout />} />
-            </Routes>
-          </PrivateRoute>
-        } />
+        <Route
+          path="/*"
+          element={
+            <PrivateRoute>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/menu" element={<Menu />} />
+                <Route path="/live-order" element={<LiveOrder />} />
+                <Route path="/pending-payments" element={<PendingPayments />} />
+                <Route path="/modifier" element={<Modifier />} />
+                <Route path="/setting" element={<Setting />} />
+                <Route path="/new-orders" element={<NewOrders />} />
+                <Route path="/checkout" element={<Checkout />} />
+              </Routes>
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );
