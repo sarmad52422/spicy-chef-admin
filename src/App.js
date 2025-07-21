@@ -158,7 +158,7 @@ function GlobalNotifications() {
 
     const checkNewOrders = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/order", {
+        const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -212,7 +212,7 @@ function GlobalNotifications() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:5000/api/order/status/${orderId}`,
+        `https://api.eatmeonline.co.uk/api/order/status/${orderId}`,
         {
           method: "PUT",
           headers: {
