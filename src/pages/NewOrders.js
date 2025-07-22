@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Accordion, Button, Row, Col, Badge, Spinner, Alert, Toast, ToastContainer } from "react-bootstrap";
+import { useReceiptPrinter } from "../hooks/printerHook";
 
 export default function NewOrders() {
   const [activeTab, setActiveTab] = useState("accepted");
@@ -7,6 +8,8 @@ export default function NewOrders() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [alert, setAlert] = useState({ show: false, message: '', variant: 'success' });
+  const { printReceipt, ReceiptModal } = useReceiptPrinter();
+
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -57,67 +60,91 @@ export default function NewOrders() {
     return true;
   });
 
-  const renderOrder = (order, index, showButtons = false, status = null) => (
-    <Accordion.Item
-      eventKey={index.toString()}
-      key={`${status}-${order.id}-${index}`}
-    >
-      <Accordion.Header>
-        <Row className="w-100">
-          <Col xs={6}>
-            <div>
-              <strong>Order #{order.orderId || order.id}</strong>
-            </div>
-            <div className="text-muted">{order.createdAt ? new Date(order.createdAt).toLocaleString() : "-"}</div>
-          </Col>
-          <Col
-            xs={6}
-            className="text-end d-flex align-items-center justify-content-end gap-2"
+ const renderOrder = (order, index, showButtons = false, status = null) => (
+  <Accordion.Item
+    eventKey={index.toString()}
+    key={`${status}-${order.id}-${index}`}
+  >
+    <Accordion.Header>
+      <Row className="w-100">
+        <Col xs={6}>
+          <div>
+            <strong>Order #{order.orderId || order.id}</strong>
+          </div>
+          <div className="text-muted">
+            {order.createdAt ? new Date(order.createdAt).toLocaleString() : "-"}
+          </div>
+        </Col>
+        <Col
+          xs={6}
+          className="text-end d-flex align-items-center justify-content-end gap-2"
+        >
+          <Badge
+            bg={status === "accepted" ? "success" : "danger"}
+            className="px-3 py-2 me-2"
           >
-            <Badge
-              bg={status === "accepted" ? "success" : "danger"}
-              className="px-3 py-2 me-2"
-            >
-              {status === "accepted" ? "Accepted" : "Rejected"}
-            </Badge>
-          </Col>
-        </Row>
-      </Accordion.Header>
-      <Accordion.Body>
-        {Array.isArray(order.items) && order.items.length > 0 ? (
-          order.items.map((item, i) => {
-            // Get item name and price
+            {status === "accepted" ? "Accepted" : "Rejected"}
+          </Badge>
+        </Col>
+      </Row>
+    </Accordion.Header>
+
+    <Accordion.Body>
+      {Array.isArray(order.items) && order.items.length > 0 ? (
+        <>
+          {order.items.map((item, i) => {
             let itemName = "-";
             let itemPrice = "-";
-            if (item.item && item.item.name) {
+
+            if (item.item?.name) {
               itemName = item.item.name;
               itemPrice = item.item.price;
-            } else if (item.variation && item.variation.item && item.variation.item.name) {
+            } else if (item.variation?.item?.name) {
               itemName = item.variation.item.name;
               itemPrice = item.variation.price || item.variation.item.price;
-            } else if (item.modifierOption && item.modifierOption.name) {
+            } else if (item.modifierOption?.name) {
               itemName = item.modifierOption.name;
               itemPrice = item.modifierOption.price;
             }
+
             return (
-              <div key={i} className="mb-2 d-flex justify-content-between align-items-center">
+              <div
+                key={i}
+                className="mb-2 d-flex justify-content-between align-items-center"
+              >
                 <div>
                   <div>
                     <strong>{itemName}</strong>
                   </div>
                 </div>
                 <div>
-                  <strong>Qty:</strong> {item.quantity} <span className="ms-3"><strong>Price:</strong> £{itemPrice}</span>
+                  <strong>Qty:</strong> {item.quantity}{" "}
+                  <span className="ms-3">
+                    <strong>Price:</strong> £{itemPrice}
+                  </span>
                 </div>
               </div>
             );
-          })
-        ) : (
-          <div>No items</div>
-        )}
-      </Accordion.Body>
-    </Accordion.Item>
-  );
+          })}
+
+          {/* 🧾 Print Receipt Button */}
+          <div className="text-end mt-3">
+            <button
+              className="btn btn-outline-primary"
+              onClick={() => printReceipt(order)}
+            >
+              🧾 Print Receipt
+            </button>
+          </div>
+        </>
+      ) : (
+        <div>No items</div>
+      )}
+    </Accordion.Body>
+  </Accordion.Item>
+  
+);
+
 
   return (
     <div className="container mt-4">
@@ -185,6 +212,8 @@ export default function NewOrders() {
           renderOrder(order, idx, false, activeTab)
         )}
       </Accordion>
+      {ReceiptModal()}
+
     </div>
   );
 }

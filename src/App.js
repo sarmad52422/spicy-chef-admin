@@ -164,15 +164,21 @@ function GlobalNotifications() {
             Authorization: `Bearer ${token}`,
           },
         });
+
         const data = await res.json();
 
         if (data.status && Array.isArray(data.result?.data)) {
+          const allOrders = data.result.data;
+
+          const newStatusOrders = allOrders.filter(
+            (order) => order.status === "NEW"
+          );
+
           const existingOrderIds = JSON.parse(
             localStorage.getItem("existingOrderIds") || "[]"
           );
-          const currentOrderIds = data.result.data.map((order) => order.id);
 
-          const newOrder = data.result.data.find(
+          const newOrder = newStatusOrders.find(
             (order) => !existingOrderIds.includes(order.id)
           );
 
@@ -187,7 +193,8 @@ function GlobalNotifications() {
             );
           }
 
-          updatePendingCount(data.result.data);
+          // Update pending count based on filtered "NEW" orders
+          updatePendingCount(newStatusOrders);
         }
       } catch (err) {
         console.error("Error checking new orders:", err);
@@ -203,7 +210,7 @@ function GlobalNotifications() {
     stopNotificationSound();
     setOrderStatusError("");
 
-    if (status === "ACCEPTED") {
+    if (status === "ACCEPTED" && status === "QUEUED") {
       setOrderStatusLoading(true);
     } else {
       setOrderStatusLoadingReject(true);
@@ -211,6 +218,13 @@ function GlobalNotifications() {
 
     try {
       const token = localStorage.getItem("token");
+      const orderStatus =
+        status === "ACCEPTED"
+          ? "ACCEPTED"
+          : status === "QUEUED"
+          ? "PENDING"
+          : "REJECTED";
+      console.log(orderStatus);
       const res = await fetch(
         `https://api.eatmeonline.co.uk/api/order/status/${orderId}`,
         {
@@ -220,7 +234,7 @@ function GlobalNotifications() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            status: status === "REJECTED" ? "REJECTED" : "ACCEPTED",
+            status: orderStatus,
           }),
         }
       );
@@ -275,7 +289,6 @@ function GlobalNotifications() {
 
     const totalAmountValue =
       orderTotalValue + serviceFeeValue + deliveryFeeValue;
-    console.log(`Order total = ${orderTotalValue}`)
     setReceiptData({
       orderId: currentNewOrder.orderId || currentNewOrder.id,
       address: currentNewOrder.address || "N/A",
@@ -377,7 +390,6 @@ function GlobalNotifications() {
 
       <Modal
         show={newOrderModal}
-        onHide={() => {}}
         centered
         backdrop="static"
         keyboard={false}
@@ -504,6 +516,18 @@ function GlobalNotifications() {
               "Reject"
             )}
           </Button>
+          <Button
+            variant="secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNewOrderModal(false);
+              stopNotificationSound();
+              setCurrentNewOrder(null);
+              handleNewOrderAction(currentNewOrder.id, "QUEUED");
+            }}
+          >
+            Close
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -537,20 +561,6 @@ function GlobalNotifications() {
             />
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowReceipt(false)}>
-            Close
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              setShowReceipt(false);
-              window.print();
-            }}
-          >
-            Print Receipt
-          </Button>
-        </Modal.Footer>
       </Modal>
 
       <style jsx>{`

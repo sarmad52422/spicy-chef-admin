@@ -23,7 +23,7 @@ const OrderDetails = ({
   return (
     <div className="bg-white rounded p-4 shadow mx-auto" style={{ maxWidth: "480px" }}>
       <div className="text-center">
-        <h5 className="fw-bold mb-2">Spicy Chef</h5>
+        <h5 className="fw-bold mb-2">Eat Me Online</h5>
         <p className="text-muted mb-1">Tel: +44 7123 456789</p>
       </div>
 
