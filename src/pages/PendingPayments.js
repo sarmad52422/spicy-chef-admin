@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Table } from "react-bootstrap";
+import { API_URL } from "../constants/contants";
 
 const PendingPayments = () => {
   const [activeTab, setActiveTab] = useState("pending");
@@ -13,7 +14,7 @@ const PendingPayments = () => {
       setError("");
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+        const res = await fetch(`${API_URL}/api/order`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,

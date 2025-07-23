@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
+import { API_URL } from "../constants/contants";
 
 const allDays = [
   "Monday",
@@ -43,7 +44,7 @@ export default function Setting() {
         return;
       }
       try {
-        const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/settings/${branch.id}`);
+        const res = await fetch(`${API_URL}/api/admin/settings/${branch.id}`);
         const data = await res.json();
         if (data.status && data.result?.data?.setting) {
           setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
@@ -67,7 +68,7 @@ export default function Setting() {
     if (!branch?.id) return;
 
     try {
-      const response = await fetch(`https://api.eatmeonline.co.uk/api/admin/branch-timing/${branch.id}`, {
+      const response = await fetch(`${API_URL}/api/admin/branch-timing/${branch.id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -136,7 +137,7 @@ export default function Setting() {
       return;
     }
     try {
-      const res = await fetch("https://api.eatmeonline.co.uk/api/admin/delievery-fee", {
+      const res = await fetch(`${API_URL}/api/admin/delievery-fee`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -179,7 +180,7 @@ export default function Setting() {
         closeTime: times.closeTime
       }));
 
-      const response = await fetch("https://api.eatmeonline.co.uk/api/admin/branch-timing", {
+      const response = await fetch(`${API_URL}/api/admin/branch-timing`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -10,6 +10,7 @@ import {
   Toast,
   ToastContainer,
 } from "react-bootstrap";
+import { API_URL } from "../constants/contants";
 
 export default function Modifier() {
   const [showModal, setShowModal] = useState(false);
@@ -35,7 +36,7 @@ export default function Modifier() {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/modifier?branch_id=${branchId}`, {
+      const res = await fetch(`${API_URL}/api/admin/modifier?branch_id=${branchId}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -164,7 +165,7 @@ export default function Modifier() {
       setSuccess("");
       setError("");
       try {
-        const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/modifier/${id}`, {
+        const res = await fetch(`${API_URL}/api/admin/modifier/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -205,7 +206,7 @@ export default function Modifier() {
     setSuccess("");
     setError("");
     try {
-      const res = await fetch("https://api.eatmeonline.co.uk/api/admin/modifier", {
+      const res = await fetch(`${API_URL}/api/admin/modifier`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -239,7 +240,7 @@ export default function Modifier() {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/modifier/${id}`, {
+      const res = await fetch(`${API_URL}/api/admin/modifier/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

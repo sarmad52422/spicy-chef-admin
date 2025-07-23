@@ -32,6 +32,7 @@ import NewOrders from "./pages/NewOrders";
 import AuthWatcher from "./AuthWatcher";
 import OrderDetails from "./components/orderDetails";
 import ReceiptWrapper from "./components/printerWrapper";
+import { API_URL } from "./constants/contants";
 
 const NOTIFICATION_SOUND_URL = "/sound/notification.mp3";
 
@@ -158,7 +159,7 @@ function GlobalNotifications() {
 
     const checkNewOrders = async () => {
       try {
-        const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+        const res = await fetch(`${API_URL}/api/order`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -226,7 +227,7 @@ function GlobalNotifications() {
           : "REJECTED";
       console.log(orderStatus);
       const res = await fetch(
-        `https://api.eatmeonline.co.uk/api/order/status/${orderId}`,
+        `${API_URL}/api/order/status/${orderId}`,
         {
           method: "PUT",
           headers: {

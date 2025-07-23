@@ -10,6 +10,7 @@ import {
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
+import { API_URL } from "../constants/contants";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -118,7 +119,7 @@ const Checkout = () => {
           return result;
         }),
       };
-      const res = await fetchWithAuth("https://api.eatmeonline.co.uk/api/order", {
+      const res = await fetchWithAuth(`${API_URL}/api/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
 import { useSelector } from "react-redux";
+import { API_URL } from "../constants/contants";
 
 const BranchSelectorModal = ({ show, onClose, onSelect }) => {
   const selectedBranch = useSelector((state) => state.branch.selectedBranch);
@@ -12,7 +13,7 @@ const BranchSelectorModal = ({ show, onClose, onSelect }) => {
     if (!show) return;
     setLoading(true);
     setError("");
-    fetch("https://api.eatmeonline.co.uk/api/branch")
+    fetch(`${API_URL}/api/branch`)
       .then((res) => res.json())
       .then((data) => {
         if (data.status && data.result?.data) {

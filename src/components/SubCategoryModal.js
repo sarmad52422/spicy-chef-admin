@@ -3,6 +3,7 @@ import { Modal, Button, Form, Row, Col, Image } from 'react-bootstrap';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import Select from 'react-select';
+import { API_URL } from '../constants/contants';
 
 const SubCategoryModal = ({ 
   show, 
@@ -60,7 +61,7 @@ const SubCategoryModal = ({
       if (!branch?.id) return;
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`https://api.eatmeonline.co.uk/api/admin/modifier?branch_id=${branch.id}`, {
+        const res = await fetch(`${API_URL}/api/admin/modifier?branch_id=${branch.id}`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -98,7 +99,7 @@ const SubCategoryModal = ({
     formData.append('file', file);
     setUploading(true);
     try {
-      const res = await axios.post('https://api.eatmeonline.co.uk/api/upload', formData, {
+      const res = await axios.post(`${API_URL}/api/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (res.data.status && res.data.result?.data) {

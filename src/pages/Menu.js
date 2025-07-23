@@ -14,8 +14,9 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SubCategoryModal from "../components/SubCategoryModal";
 import Alert from "../components/Alert";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
+import { API_URL } from "../constants/contants";
 
-const API_BASE_URL = "https://api.eatmeonline.co.uk/api";
+const API_BASE_URL = `${API_URL}/api`;
 
 const Menu = () => {
   const dispatch = useDispatch();

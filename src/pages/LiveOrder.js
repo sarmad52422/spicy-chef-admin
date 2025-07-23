@@ -22,6 +22,7 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SubCategoryModal from "../components/SubCategoryModal";
 import VariationSelectModal from "../components/VariationSelectModal";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
+import { API_URL } from "../constants/contants";
 
 const LiveOrder = () => {
   const dispatch = useDispatch();
@@ -60,7 +61,7 @@ const LiveOrder = () => {
     if (!selectedBranch?.id) return;
     setLoading(true);
     try {
-      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category?branch_id=${selectedBranch.id}`);
+      const res = await fetchWithAuth(`${API_URL}/api/admin/category?branch_id=${selectedBranch.id}`);
       const data = await res.json();
       if (data.status && data.result?.data) {
         setCategories(data.result.data);
@@ -98,7 +99,7 @@ const LiveOrder = () => {
           modifiers: item.modifiers || [],
         })),
       };
-      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category`, {
+      const res = await fetchWithAuth(`${API_URL}/api/admin/category`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,7 +135,7 @@ const LiveOrder = () => {
           modifiers: item.modifiers || [],
         })),
       };
-      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category`, {
+      const res = await fetchWithAuth(`${API_URL}/api/admin/category`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -152,7 +153,7 @@ const LiveOrder = () => {
   const deleteCategoryApi = async (categoryId) => {
     setLoading(true);
     try {
-      const res = await fetchWithAuth(`https://api.eatmeonline.co.uk/api/admin/category/${categoryId}`, {
+      const res = await fetchWithAuth(`${API_URL}/api/admin/category/${categoryId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -224,7 +225,7 @@ const LiveOrder = () => {
           })),
           modifiers: data.modifiers || [],
         };
-        await fetchWithAuth('https://api.eatmeonline.co.uk/api/admin/category/item', {
+        await fetchWithAuth(`${API_URL}/api/admin/category/item`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import { Modal, Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useReceiptPrinter } from "../hooks/printerHook";
+import { API_URL } from "../constants/contants";
 const Home = () => {
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
@@ -28,7 +29,7 @@ const Home = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const res = await fetch("https://api.eatmeonline.co.uk/api/order", {
+      const res = await fetch(`${API_URL}/api/order`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -60,9 +61,9 @@ const Home = () => {
   const handleAcceptOrder = async () => {
     setShowDecisionModal(false);
     try {
-      const token = localStorage.getItem("token");
+      
        await fetch(
-          `https://api.eatmeonline.co.uk/api/order/status/${selectedOrder?.id}`,
+          `${API_URL}/api/order/status/${selectedOrder?.id}`,
           {
             method: "PUT",
             headers: {
@@ -77,7 +78,8 @@ const Home = () => {
       console.error("Failed to update order status to ACCEPTED", error);
     }
   };
-
+const token = localStorage.getItem("token");
+      console.log(token);
   return (
     <div className="container-fluid min-vh-100">
       <div className="row min-vh-100">

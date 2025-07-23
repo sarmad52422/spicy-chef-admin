@@ -3,6 +3,7 @@ import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import Select from "react-select";
+import { API_URL } from "../constants/contants";
 
 const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
   const [categoryName, setCategoryName] = useState("");
@@ -119,7 +120,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `https://api.eatmeonline.co.uk/api/admin/modifier?branch_id=${branch.id}`,
+          `${API_URL}/api/admin/modifier?branch_id=${branch.id}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -178,7 +179,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
     setUploading(true);
     try {
       const res = await axios.post(
-        "https://api.eatmeonline.co.uk/api/upload",
+        `${API_URL}/api/upload`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },

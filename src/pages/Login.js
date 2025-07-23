@@ -4,6 +4,7 @@ import BranchSelectorModal from "../components/BranchSelectorModal";
 import Alert from "../components/Alert";
 import { useDispatch } from "react-redux";
 import { setBranch } from "../redux/slices/branchSlice";
+import { API_URL } from "../constants/contants";
 
 // Custom inline hook
 function useAuth() {
@@ -11,7 +12,7 @@ function useAuth() {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
 
   const login = async (email, password) => {
-    const res = await fetch("https://api.eatmeonline.co.uk/api/auth/signin", {
+    const res = await fetch(`${API_URL}/api/auth/signin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
