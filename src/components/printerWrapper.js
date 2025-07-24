@@ -186,7 +186,6 @@ const ReceiptWrapper = (props) => {
           width: '76mm',
           maxWidth: '76mm',
           backgroundColor: '#ffffff',
-          padding: '2mm'
         }}
       >
         <OrderDetails {...props} />
@@ -202,7 +201,7 @@ const ReceiptWrapper = (props) => {
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
         overflow: 'hidden'
       }}>
-        <div style={{ padding: '2mm' }}>
+        <div style={{ padding: '0' }}>
           <OrderDetails {...props} />
         </div>
       </div>

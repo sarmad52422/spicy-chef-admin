@@ -114,70 +114,7 @@ const token = localStorage.getItem("token");
             </div>
           </div>
         </div>
-
-        {/* Right Column - PENDING orders table */}
-        <div
-          className="col-12 col-lg-4 col-md-4 bg-light d-flex flex-column p-3"
-          style={{ height: "100vh", overflowY: "auto" }}
-        >
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="text-primary m-0">Pending Orders</h5>
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={fetchPendingOrders}
-              title="Refresh"
-            >
-              <i className="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
-
-          {loading ? (
-            <p className="text-center">Loading orders...</p>
-          ) : pendingOrders.length === 0 ? (
-            <div className="text-center">
-              <img
-                src="/images/looker-icon.png"
-                alt="no orders"
-                style={{ width: "100px" }}
-              />
-              <h5 className="text-success mt-3">All caught up!</h5>
-              <p>No pending orders found.</p>
-            </div>
-          ) : (
-            <table className="table table-bordered table-hover">
-              <thead className="table-light">
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {pendingOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => handleOrderClick(order)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td>{order.orderId}</td>
-                    <td>{order.fullName || "N/A"}</td>
-
-                    <td>{order.orderType}</td>
-                    <td>
-                      <span className="badge bg-warning text-dark">
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
       </div>
-
       {/* Modal: Order Type Prompt */}
       <Modal show={showTypeModal} onHide={handleCloseTypeModal} centered>
         <Modal.Header className="justify-content-center">

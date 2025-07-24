@@ -21,7 +21,10 @@ const OrderDetails = ({
   const cardLast4 = isCard ? paymentMethod.slice(-4) : "";
 
   return (
-    <div className="bg-white rounded p-4 shadow mx-auto" style={{ maxWidth: "480px" }}>
+    <div
+      className="bg-white rounded p-4 shadow mx-auto"
+      style={{ maxWidth: "480px" }}
+    >
       <div className="text-center">
         <h5 className="fw-bold mb-2">Eat Me Online</h5>
         <p className="text-muted mb-1">Tel: +44 7123 456789</p>
@@ -32,7 +35,11 @@ const OrderDetails = ({
       <div className="text-center mb-2">
         <h6 className="fw-semibold">Scheduled for Delivery</h6>
         <p className="text-muted mb-1">
-          Requested for <b>{`${format(date, "EEE d-MMM yyyy")} At ${format(new Date(date), "h:mm a")}`}</b>
+          Requested for{" "}
+          <b>{`${format(date, "EEE d-MMM yyyy")} At ${format(
+            new Date(date),
+            "h:mm a"
+          )}`}</b>
         </p>
         <p className="text-muted">Order Number: {orderId}</p>
       </div>
@@ -50,9 +57,19 @@ const OrderDetails = ({
         <tbody>
           {items.map((item, idx) => (
             <tr key={idx}>
-              <td style={{ wordBreak: "break-word", maxWidth: 200 }}>{item.name}</td>
+              <td style={{ wordBreak: "break-word", maxWidth: 200 }}>
+                {item.name}
+              </td>
               <td className="text-center">{item.quantity}</td>
-              <td className="text-end">{item.totalAmount}</td>
+              <td
+                className="text-end"
+                style={{
+                  fontSize: item.totalAmount.length > 7 ? "0.8rem" : "1rem",
+                  lineHeight: "1.2",
+                }}
+              >
+                {item.totalAmount}
+              </td>{" "}
             </tr>
           ))}
         </tbody>
@@ -68,7 +85,7 @@ const OrderDetails = ({
           <strong>{discount}</strong>
         </div>
 
-         <div className="d-flex justify-content-between mb-2">
+        <div className="d-flex justify-content-between mb-2">
           <strong>Order Total</strong>
           <strong>{orderTotal}</strong>
         </div>
@@ -99,7 +116,9 @@ const OrderDetails = ({
 
       <div className="mt-3">
         <strong>Paid By:</strong>
-        <p className="mb-0">{isCard ? `Card ****${cardLast4}` : paymentMethod}</p>
+        <p className="mb-0">
+          {isCard ? `Card ****${cardLast4}` : paymentMethod}
+        </p>
       </div>
 
       <hr className="my-3 border-dashed" />

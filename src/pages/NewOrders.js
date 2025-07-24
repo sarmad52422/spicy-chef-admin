@@ -109,6 +109,7 @@ export default function NewOrders() {
 
   // Filter orders by status for each tab
   const filteredOrders = orders.filter((order) => {
+    if (activeTab === "pending") return order.status === "PENDING";
     if (activeTab === "accepted") return order.status === "ACCEPTED";
     if (activeTab === "ontheway") return order.status === "ON_THE_WAY";
     if (activeTab === "completed") return order.status === "COMPLETED";
@@ -139,7 +140,9 @@ export default function NewOrders() {
           >
             <Badge
               bg={
-                status === "accepted"
+                status === "pending"
+                  ? "secondary" // or "info" if you want blue
+                  : status === "accepted"
                   ? "success"
                   : status === "ontheway"
                   ? "warning"
@@ -149,7 +152,9 @@ export default function NewOrders() {
               }
               className="px-3 py-2 me-2"
             >
-              {status === "accepted"
+              {status === "pending"
+                ? "Pending"
+                : status === "accepted"
                 ? "Accepted"
                 : status === "ontheway"
                 ? "On The Way"
@@ -191,9 +196,43 @@ export default function NewOrders() {
                   </div>
                   <div>
                     <strong>Qty:</strong> {item.quantity}{" "}
-                    <span className="ms-3">
-                      <strong>Price:</strong> £{itemPrice}
-                    </span>
+                    {(() => {
+                      // Base price
+                      const price = Number(
+                        item.item?.price ||
+                          item.variation?.price ||
+                          item.modifierOption?.price ||
+                          0
+                      );
+                      const quantity = item.quantity || 1;
+
+                      const discountPercent =
+                        item.item?.discount ||
+                        item.variation?.item?.discount ||
+                        0;
+
+                      const discountAmountPerUnit =
+                        price * (discountPercent / 100);
+                      const discountedPrice = price - discountAmountPerUnit;
+                      const totalDiscount = discountAmountPerUnit * quantity;
+                      const totalFinal = discountedPrice * quantity;
+
+                      return (
+                        <div className="ms-3 d-flex flex-column text-end">
+                          <div>
+                            <strong>Price:</strong> £{price.toFixed(2)}
+                          </div>
+                          {discountPercent > 0 && (
+                            <div className="text-muted small">
+                              Discount: -£{totalDiscount.toFixed(2)}
+                            </div>
+                          )}
+                          <div>
+                            <strong>Final:</strong> £{totalFinal.toFixed(2)}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -284,6 +323,14 @@ export default function NewOrders() {
       <div className="d-flex gap-3 flex-wrap mb-4">
         <button
           className={`btn ${
+            activeTab === "pending" ? "btn-dark" : "btn-outline-dark"
+          } rounded-pill px-4 shadow-sm`}
+          onClick={() => setActiveTab("pending")}
+        >
+          Pending
+        </button>
+        <button
+          className={`btn ${
             activeTab === "accepted" ? "btn-dark" : "btn-outline-dark"
           } rounded-pill px-4 shadow-sm`}
           onClick={() => setActiveTab("accepted")}
@@ -333,62 +380,81 @@ export default function NewOrders() {
         <Modal.Header closeButton>
           <Modal.Title>Update Order Status</Modal.Title>
         </Modal.Header>
-       <Modal.Body>
-  {(() => {
-    if (!selectedOrderId) return null;
+        <Modal.Body>
+          {(() => {
+            if (!selectedOrderId) return null;
 
-    // Find the selected order to know its status
-    const selectedOrder = orders.find(o => o.id === selectedOrderId);
-    const status = selectedOrder?.status;
+            const selectedOrder = orders.find((o) => o.id === selectedOrderId);
+            const status = selectedOrder?.status;
 
-    if (status === "ACCEPTED") {
-      // Show both actions
-      return (
-        <div className="d-flex flex-column gap-2">
-          <Button
-            variant="warning"
-            onClick={() => {
-              handleMoreActions(selectedOrderId, "ON_THE_WAY");
-              setShowStatusDialog(false);
-            }}
-          >
-            Status: On The Way
-          </Button>
-          <Button
-            variant="success"
-            onClick={() => {
-              handleMoreActions(selectedOrderId, "COMPLETED");
-              setShowStatusDialog(false);
-            }}
-          >
-            Status: Delivered
-          </Button>
-        </div>
-      );
-    }
+            if (status === "ACCEPTED") {
+              return (
+                <div className="d-flex flex-column gap-2">
+                  <Button
+                    variant="warning"
+                    onClick={() => {
+                      handleMoreActions(selectedOrderId, "ON_THE_WAY");
+                      setShowStatusDialog(false);
+                    }}
+                  >
+                    Status: On The Way
+                  </Button>
+                  <Button
+                    variant="success"
+                    onClick={() => {
+                      handleMoreActions(selectedOrderId, "COMPLETED");
+                      setShowStatusDialog(false);
+                    }}
+                  >
+                    Status: Delivered
+                  </Button>
+                </div>
+              );
+            }
+            if (status === "PENDING") {
+              return (
+                <div className="d-flex flex-column gap-2">
+                  <Button
+                    variant="success"
+                    onClick={() => {
+                      handleMoreActions(selectedOrderId, "ACCEPTED");
+                      setShowStatusDialog(false);
+                    }}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      handleMoreActions(selectedOrderId, "REJECTED");
+                      setShowStatusDialog(false);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              );
+            }
+            if (status === "ON_THE_WAY") {
+              return (
+                <div className="d-flex flex-column gap-2">
+                  <Button
+                    variant="success"
+                    onClick={() => {
+                      handleMoreActions(selectedOrderId, "COMPLETED");
+                      setShowStatusDialog(false);
+                    }}
+                  >
+                    Status: Delivered
+                  </Button>
+                </div>
+              );
+            }
 
-    if (status === "ON_THE_WAY") {
-      // Show only Delivered button
-      return (
-        <div className="d-flex flex-column gap-2">
-          <Button
-            variant="success"
-            onClick={() => {
-              handleMoreActions(selectedOrderId, "COMPLETED");
-              setShowStatusDialog(false);
-            }}
-          >
-            Status: Delivered
-          </Button>
-        </div>
-      );
-    }
-
-    // For COMPLETED or REJECTED, show message
-    return <p className="text-center mb-0">No actions required.</p>;
-  })()}
-</Modal.Body>
-
+            // For COMPLETED or REJECTED, show message
+            return <p className="text-center mb-0">No actions required.</p>;
+          })()}
+        </Modal.Body>
       </Modal>
 
       {ReceiptModal()}

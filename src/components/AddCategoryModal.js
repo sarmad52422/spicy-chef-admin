@@ -345,6 +345,7 @@ const AddCategoryModal = ({ show, onHide, onSave, editData = null }) => {
 
     setLoading(true);
     try {
+      console.log('edit sub',editData)
       if (editData?.isSubCategory) {
         await onSave({ ...editData, ...validSubs[0] }, true);
       } else {

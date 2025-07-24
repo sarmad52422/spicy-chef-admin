@@ -23,6 +23,8 @@ export default function Setting() {
   const [loading, setLoading] = useState(false);
   const [timingStatus, setTimingStatus] = useState(null);
   const [timingError, setTimingError] = useState(null);
+  const [minOrderValue, setMinOrderValue] = useState(10);
+  const [minOrderError, setMinOrderError] = useState("");
 
   // Opening hours state for each day
   const [openingHours, setOpeningHours] = useState(() =>
@@ -47,10 +49,15 @@ export default function Setting() {
         const res = await fetch(`${API_URL}/api/admin/settings/${branch.id}`);
         const data = await res.json();
         if (data.status && data.result?.data?.setting) {
-          setDeliveryFee(data.result.data.setting.deliveryFee?.toString() || "");
+          setDeliveryFee(
+            data.result.data.setting.deliveryFee?.toString() || ""
+          );
           setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
-          setDeliveryTime(data.result.data.setting.deliveryTime?.toString() || "");
+          setDeliveryTime(
+            data.result.data.setting.deliveryTime?.toString() || ""
+          );
           setDiscount(data.result.data.setting.discount?.toString() || "");
+          setMinOrderValue(data.result.data.setting.minOrderVal?.toString()||0)
         }
       } catch (err) {
         setFeeError("Failed to fetch settings.");
@@ -62,27 +69,50 @@ export default function Setting() {
     };
     fetchSettings();
   }, []);
+  const validateMinOrder = (value) => {
+    setMinOrderError("");
 
+    if (value === "") {
+      setMinOrderError("Minimum order value is required");
+      return false;
+    }
+
+    const numValue = Number(value);
+    if (isNaN(numValue) || numValue < 0) {
+      setMinOrderError("Minimum order value must be a positive number");
+      return false;
+    }
+
+    return true;
+  };
+  const handleMinOrderChange = (e) => {
+    const value = e.target.value;
+    setMinOrderValue(value);
+    validateMinOrder(value);
+  };
   const fetchBranchTimings = async () => {
     const branch = JSON.parse(localStorage.getItem("selectedBranch"));
     if (!branch?.id) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/branch-timing/${branch.id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await fetch(
+        `${API_URL}/api/admin/branch-timing/${branch.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       const data = await response.json();
 
       if (data.status && data.result?.data) {
         const timings = data.result.data;
         const updatedHours = { ...openingHours };
 
-        timings.forEach(timing => {
+        timings.forEach((timing) => {
           updatedHours[timing.day] = {
             openTime: timing.openTime,
-            closeTime: timing.closeTime
+            closeTime: timing.closeTime,
           };
         });
 
@@ -130,6 +160,11 @@ export default function Setting() {
       setFeeError("Please fix the discount validation error before saving.");
       return;
     }
+    if (!validateMinOrder(minOrderValue)) {
+      setMinOrderError(
+        "Min Order value cannot be empty or invalid and negtive number"
+      );
+    }
 
     const branch = JSON.parse(localStorage.getItem("selectedBranch"));
     if (!branch?.id) {
@@ -149,8 +184,10 @@ export default function Setting() {
           serviceFee: Number(serviceFee),
           deliveryTime: Number(deliveryTime),
           discount: discount ? Number(discount) : 0,
+          minOrderVal: minOrderValue,
         }),
       });
+      console.log(minOrderValue)
       const data = await res.json();
       if (data.status) {
         setFeeStatus("Settings updated successfully.");
@@ -177,7 +214,7 @@ export default function Setting() {
       const timingsArray = Object.entries(openingHours).map(([day, times]) => ({
         day,
         openTime: times.openTime,
-        closeTime: times.closeTime
+        closeTime: times.closeTime,
       }));
 
       const response = await fetch(`${API_URL}/api/admin/branch-timing`, {
@@ -188,7 +225,7 @@ export default function Setting() {
         },
         body: JSON.stringify({
           branchId: branch.id,
-          timings: timingsArray
+          timings: timingsArray,
         }),
       });
 
@@ -236,7 +273,8 @@ export default function Setting() {
           </Form.Group>
           <Form.Group className="mb-3">
             <Form.Label>
-              <strong>Delivery Time</strong> <span className="text-muted">(in minutes)</span>
+              <strong>Delivery Time</strong>{" "}
+              <span className="text-muted">(in minutes)</span>
             </Form.Label>
             <Form.Control
               type="text"
@@ -266,12 +304,42 @@ export default function Setting() {
                 {discountError}
               </Form.Control.Feedback>
             )}
-            <Form.Text className="text-muted">
-              Enter discount percentage (0-100%). Leave empty for no discount.
-            </Form.Text>
+            <Form.Group className="mb-3">
+              <Form.Label>
+                <strong>Minimum Order Value</strong>{" "}
+                <span className="text-muted">(£)</span>
+              </Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="Enter Minimum Order Value"
+                value={minOrderValue}
+                onChange={handleMinOrderChange}
+                disabled={loading}
+                min="0"
+                step="0.01"
+                isInvalid={!!minOrderError}
+              />
+              {minOrderError && (
+                <Form.Control.Feedback type="invalid">
+                  {minOrderError}
+                </Form.Control.Feedback>
+              )}
+              <Form.Text className="text-muted">
+                Orders below this amount will not be allowed.
+              </Form.Text>
+            </Form.Group>
+         
           </Form.Group>
-          {feeStatus && <Alert className="alert-success" variant="success">{feeStatus}</Alert>}
-          {feeError && <Alert className="alert-success" variant="danger">{feeError}</Alert>}
+          {feeStatus && (
+            <Alert className="alert-success" variant="success">
+              {feeStatus}
+            </Alert>
+          )}
+          {feeError && (
+            <Alert className="alert-success" variant="danger">
+              {feeError}
+            </Alert>
+          )}
           <Button variant="primary" onClick={handleDeliverySave}>
             Save
           </Button>
@@ -282,18 +350,21 @@ export default function Setting() {
           <Card className="p-4">
             <h5>Restaurant Timing</h5>
             {allDays.map((day) => (
-              <div key={day} className="mb-3 d-flex align-items-center justify-content-between">
+              <div
+                key={day}
+                className="mb-3 d-flex align-items-center justify-content-between"
+              >
                 <div style={{ width: 100 }}>{day}</div>
                 <input
                   type="time"
                   value={openingHours[day].openTime}
-                  onChange={e =>
-                    setOpeningHours(prev => ({
+                  onChange={(e) =>
+                    setOpeningHours((prev) => ({
                       ...prev,
                       [day]: {
                         ...prev[day],
-                        openTime: e.target.value
-                      }
+                        openTime: e.target.value,
+                      },
                     }))
                   }
                   className="form-control mx-2"
@@ -303,13 +374,13 @@ export default function Setting() {
                 <input
                   type="time"
                   value={openingHours[day].closeTime}
-                  onChange={e =>
-                    setOpeningHours(prev => ({
+                  onChange={(e) =>
+                    setOpeningHours((prev) => ({
                       ...prev,
                       [day]: {
                         ...prev[day],
-                        closeTime: e.target.value
-                      }
+                        closeTime: e.target.value,
+                      },
                     }))
                   }
                   className="form-control mx-2"
@@ -321,10 +392,17 @@ export default function Setting() {
             <Button className="mt-3" onClick={handleTimingSave}>
               Save
             </Button>
-
           </Card>
-          {timingStatus && <Alert variant="success" className="mt-3 absolute top-0 right-0">{timingStatus}</Alert>}
-          {timingError && <Alert variant="danger" className="mt-3 absolute top-0 right-0">{timingError}</Alert>}
+          {timingStatus && (
+            <Alert variant="success" className="mt-3 absolute top-0 right-0">
+              {timingStatus}
+            </Alert>
+          )}
+          {timingError && (
+            <Alert variant="danger" className="mt-3 absolute top-0 right-0">
+              {timingError}
+            </Alert>
+          )}
         </Col>
       </Row>
     </div>

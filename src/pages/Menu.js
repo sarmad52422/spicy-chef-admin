@@ -173,6 +173,7 @@ const Menu = () => {
         items: (category.subCategories || []).map(item => ({
           id: item.id,
           name: item.name,
+          discount:item.discount,
           price: String(item.price),
           image: item.image,
           description: item.description,
@@ -279,6 +280,7 @@ const Menu = () => {
           })),
         modifiers: item.modifiers || []
       };
+      console.log('payload for item = ',payload)
       const res = await fetchWithAuth(`${API_BASE_URL}/admin/category/item/${item.id}`, {
         method: "PUT",
         headers: getAuthHeaders(),

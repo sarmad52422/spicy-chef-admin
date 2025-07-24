@@ -270,60 +270,57 @@ function GlobalNotifications() {
       setOrderStatusLoadingReject(false);
     }
   };
-  const calculateAndPrintBill = () => {
-    const subtotalValue = currentNewOrder.items.reduce((acc, item) => {
-      const price = Number(
-        item.item?.price ||
-          item.variation?.price ||
-          item.modifierOption?.price ||
-          0
-      );
-      const quantity = item.quantity || 1;
-      return acc + price * quantity;
-    }, 0);
+ const calculateAndPrintBill = () => {
+  const totalAmountValue = Number(currentNewOrder.totalAmount || 0);
+  const serviceFeeValue = Number(currentNewOrder.serviceFee || 0);
+  const deliveryFeeValue = Number(currentNewOrder.deliveryFee || 0);
 
-    const discountValue = Number(currentNewOrder.discount || 0);
-    const serviceFeeValue = Number(currentNewOrder.serviceFee || 0);
-    const deliveryFeeValue = Number(currentNewOrder.deliveryFee || 0);
+  const items = currentNewOrder.items.map((item) => {
+    const rawPrice =
+      item.item?.price ||
+      item.variation?.price ||
+      item.modifierOption?.price ||
+      0;
 
-    const orderTotalValue = subtotalValue - discountValue;
+    const quantity = item.quantity || 1;
 
-    const totalAmountValue =
-      orderTotalValue + serviceFeeValue + deliveryFeeValue;
-    setReceiptData({
-      orderId: currentNewOrder.orderId || currentNewOrder.id,
-      address: currentNewOrder.address || "N/A",
-      date: currentNewOrder.createdAt || new Date(),
-      serviceFee: `£${serviceFeeValue.toFixed(2)}`,
-      deliveryFee: `£${deliveryFeeValue.toFixed(2)}`,
-      items: currentNewOrder.items.map((item) => {
-        const price = Number(
-          item.item?.price ||
-            item.variation?.price ||
-            item.modifierOption?.price ||
-            0
-        );
-        return {
-          name:
-            item.item?.name ||
-            item.variation?.item?.name ||
-            item.modifierOption?.name ||
-            "Unknown Item",
-          quantity: item.quantity || 1,
-          totalAmount: `£${(price * (item.quantity || 1)).toFixed(2)}`,
-        };
-      }),
-      subtotal: `£${subtotalValue.toFixed(2)}`,
-      orderTotal: `£${orderTotalValue.toFixed(2)}`,
-      totalAmount: `£${totalAmountValue.toFixed(2)}`,
-      discount: discountValue > 0 ? `£${discountValue.toFixed(2)}` : "£0.00",
-      tax: `£${Number(currentNewOrder.tax || 0).toFixed(2)}`,
-      tip: `£${Number(currentNewOrder.tip || 0).toFixed(2)}`,
-      total: `£${Number(currentNewOrder.total || totalAmountValue).toFixed(2)}`,
-      paymentMethod: currentNewOrder.paymentType || "Cash",
-      paymentStatus: currentNewOrder.paymentStatus || "PAID",
-    });
-  };
+    return {
+      name:
+        item.item?.name ||
+        item.variation?.item?.name ||
+        item.modifierOption?.name ||
+        "Unknown Item",
+      quantity,
+      totalAmount: `£${(Number(rawPrice) * quantity).toFixed(2)}`,
+      // Optional: Show discount per item if needed
+      discount: item.item?.discount
+        ? `${item.item.discount}%`
+        : item.variation?.item?.discount
+        ? `${item.variation.item.discount}%`
+        : "0%",
+    };
+  });
+
+  setReceiptData({
+    orderId: currentNewOrder.orderId || currentNewOrder.id,
+    address: currentNewOrder.address || "N/A",
+    date: currentNewOrder.createdAt || new Date(),
+    serviceFee: `£${serviceFeeValue.toFixed(2)}`,
+    deliveryFee: `£${deliveryFeeValue.toFixed(2)}`,
+    items,
+    // Subtotal and orderTotal are equal to totalAmount here since backend handles discount
+    subtotal: `£${totalAmountValue.toFixed(2)}`,
+    orderTotal: `£${totalAmountValue.toFixed(2)}`,
+    totalAmount: `£${totalAmountValue.toFixed(2)}`,
+    discount: "£0.00", // discount already included in backend total
+    tax: `£${Number(currentNewOrder.tax || 0).toFixed(2)}`,
+    tip: `£${Number(currentNewOrder.tip || 0).toFixed(2)}`,
+    total: `£${totalAmountValue.toFixed(2)}`,
+    paymentMethod: currentNewOrder.paymentType || "Cash",
+    paymentStatus: currentNewOrder.paymentStatus || "PAID",
+  });
+};
+
 
   const token = localStorage.getItem("token");
   if (!token) return null;
