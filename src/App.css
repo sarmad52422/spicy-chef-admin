@@ -12,7 +12,32 @@
     animation: App-logo-spin infinite 20s linear;
   }
 }
+@media print {
+  /* Force exact paper width for thermal */
+  @page {
+    size: 80mm auto;
+    margin: 0; /* remove default browser margins */
+  }
 
+  /* Fix body & receipt wrapper */
+  body,
+  .receipt-preview {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Remove extra padding on inner elements */
+  .receipt-preview * {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-weight: normal !important; /* avoid bolding issue */
+  }
+}
 .alert-success {
   position: absolute;
   top: 0;

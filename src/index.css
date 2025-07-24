@@ -13,7 +13,15 @@ code {
     monospace;
 }
 
-
+@media print {
+  .receipt-preview {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 80mm !important;
+    background: #fff !important;
+  }
+}
 
 .alert-success {
   position: absolute;
