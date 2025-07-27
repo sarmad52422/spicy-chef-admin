@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Accordion,
   Button,
@@ -9,10 +9,23 @@ import {
   Alert,
   Toast,
   ToastContainer,
-  Modal,
+  InputGroup,
 } from "react-bootstrap";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useReceiptPrinter } from "../hooks/printerHook";
 import { API_URL } from "../constants/contants";
+
+const startOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+const endOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+};
 
 export default function NewOrders() {
   const [activeTab, setActiveTab] = useState("accepted");
@@ -24,69 +37,75 @@ export default function NewOrders() {
     message: "",
     variant: "success",
   });
+
+  // Default to today's range
+  const [dateRange, setDateRange] = useState({
+    start: startOfDay(new Date()),
+    end: endOfDay(new Date()),
+  });
+
+  // Temporary range for the picker (applied on Go)
+  const [tempDateRange, setTempDateRange] = useState({
+    start: startOfDay(new Date()),
+    end: endOfDay(new Date()),
+  });
+
   const { printReceipt, ReceiptModal } = useReceiptPrinter();
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  // Auto-reset to today at midnight
+  useEffect(() => {
+    const now = new Date();
+    const msUntilMidnight =
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() -
+      now.getTime();
+
+    const timer = setTimeout(() => {
+      setDateRange({
+        start: startOfDay(new Date()),
+        end: endOfDay(new Date()),
+      });
+      setTempDateRange({
+        start: startOfDay(new Date()),
+        end: endOfDay(new Date()),
+      });
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timer);
+  }, [dateRange]);
+
+  // Fetch orders
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/order/status/${orderId}`, {
-        method: "PUT",
+      const res = await fetch(`${API_URL}/api/order`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
       });
-      const data = await response.json();
+      const data = await res.json();
 
-      if (data.status) {
-        showAlert("Order status updated successfully!", "success");
-        setOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order.id === orderId ? { ...order, status: newStatus } : order
-          )
+      if (data.status && Array.isArray(data.result?.data)) {
+        const sorted = data.result.data.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
         );
+        console.log(`Sorted at = `, sorted);
+        setOrders(sorted);
       } else {
-        showAlert(data.message || "Failed to update order status", "danger");
+        setOrders([]);
+        setError(data.message || "Failed to fetch orders");
       }
-    } catch (error) {
-      showAlert("Error updating order status", "danger");
+    } catch (err) {
+      setOrders([]);
+      setError("Failed to fetch orders");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_URL}/api/order`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
-        if (data.status && Array.isArray(data.result?.data)) {
-          setOrders(data.result.data);
-          const existingOrderIds = data.result.data.map((order) => order.id);
-          localStorage.setItem(
-            "existingOrderIds",
-            JSON.stringify(existingOrderIds)
-          );
-        } else {
-          setOrders([]);
-          setError(data.message || "Failed to fetch orders");
-        }
-      } catch (err) {
-        setOrders([]);
-        setError("Failed to fetch orders");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrders();
   }, []);
 
@@ -101,14 +120,58 @@ export default function NewOrders() {
     }, 10);
   };
 
-  const filteredOrders = orders.filter((order) => {
-    if (activeTab === "pending") return order.status === "PENDING";
-    if (activeTab === "accepted") return order.status === "ACCEPTED";
-    if (activeTab === "ontheway") return order.status === "ON_THE_WAY";
-    if (activeTab === "completed") return order.status === "COMPLETED";
-    if (activeTab === "rejected") return order.status === "REJECTED";
-    return true;
-  });
+  // Apply date range
+  const applyDateRange = () => {
+    setDateRange({
+      start: startOfDay(tempDateRange.start),
+      end: endOfDay(tempDateRange.end),
+    });
+  };
+
+  // Filter orders by status + date
+  const filteredOrders = useMemo(() => {
+    const filteredByStatus = orders.filter((order) => {
+      if (activeTab === "pending") return order.status === "PENDING";
+      if (activeTab === "accepted") return order.status === "ACCEPTED";
+      if (activeTab === "ontheway") return order.status === "ON_THE_WAY";
+      if (activeTab === "completed") return order.status === "COMPLETED";
+      if (activeTab === "rejected") return order.status === "REJECTED";
+      return true;
+    });
+
+    return filteredByStatus.filter((order) => {
+      const createdAt = new Date(order.createdAt);
+      return createdAt >= dateRange.start && createdAt <= dateRange.end;
+    });
+  }, [orders, activeTab, dateRange]);
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/order/status/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await response.json();
+
+      if (data.status) {
+        showAlert("Order status updated successfully!", "success");
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+      } else {
+        showAlert(data.message || "Failed to update order status", "danger");
+      }
+    } catch (error) {
+      showAlert("Error updating order status", "danger");
+    }
+  };
 
   const renderActionButtons = (order) => {
     switch (order.status) {
@@ -165,7 +228,7 @@ export default function NewOrders() {
     }
   };
 
-  const renderOrder = (order, index, showButtons = false, status = null) => (
+  const renderOrder = (order, index, status = null) => (
     <Accordion.Item
       eventKey={index.toString()}
       key={`${status}-${order.id}-${index}`}
@@ -219,18 +282,26 @@ export default function NewOrders() {
           <>
             {order.items.map((item, i) => {
               let itemName = "-";
-              let itemPrice = "-";
+              let price = 0;
 
               if (item.item?.name) {
                 itemName = item.item.name;
-                itemPrice = item.item.price;
+                price = item.item.price;
               } else if (item.variation?.item?.name) {
                 itemName = item.variation.item.name;
-                itemPrice = item.variation.price || item.variation.item.price;
+                price = item.variation.price || item.variation.item.price;
               } else if (item.modifierOption?.name) {
                 itemName = item.modifierOption.name;
-                itemPrice = item.modifierOption.price;
+                price = item.modifierOption.price;
               }
+
+              const quantity = item.quantity || 1;
+              const discountPercent =
+                item.item?.discount || item.variation?.item?.discount || 0;
+              const discountAmountPerUnit = price * (discountPercent / 100);
+              const discountedPrice = price - discountAmountPerUnit;
+              const totalDiscount = discountAmountPerUnit * quantity;
+              const totalFinal = discountedPrice * quantity;
 
               return (
                 <div
@@ -238,46 +309,23 @@ export default function NewOrders() {
                   className="mb-2 d-flex justify-content-between align-items-center"
                 >
                   <div>
-                    <div>
-                      <strong>{itemName}</strong>
-                    </div>
+                    <strong>{itemName}</strong>
                   </div>
                   <div>
-                    <strong>Qty:</strong> {item.quantity}{" "}
-                    {(() => {
-                      const price = Number(
-                        item.item?.price ||
-                          item.variation?.price ||
-                          item.modifierOption?.price ||
-                          0
-                      );
-                      const quantity = item.quantity || 1;
-                      const discountPercent =
-                        item.item?.discount ||
-                        item.variation?.item?.discount ||
-                        0;
-                      const discountAmountPerUnit =
-                        price * (discountPercent / 100);
-                      const discountedPrice = price - discountAmountPerUnit;
-                      const totalDiscount = discountAmountPerUnit * quantity;
-                      const totalFinal = discountedPrice * quantity;
-
-                      return (
-                        <div className="ms-3 d-flex flex-column text-end">
-                          <div>
-                            <strong>Price:</strong> £{price.toFixed(2)}
-                          </div>
-                          {discountPercent > 0 && (
-                            <div className="text-muted small">
-                              Discount: -£{totalDiscount.toFixed(2)}
-                            </div>
-                          )}
-                          <div>
-                            <strong>Final:</strong> £{totalFinal.toFixed(2)}
-                          </div>
+                    <strong>Qty:</strong> {quantity}
+                    <div className="ms-3 d-flex flex-column text-end">
+                      <div>
+                        <strong>Price:</strong> £{price}
+                      </div>
+                      {discountPercent > 0 && (
+                        <div className="text-muted small">
+                          Discount: -£{totalDiscount?.toFixed(2)}
                         </div>
-                      );
-                    })()}
+                      )}
+                      <div>
+                        <strong>Final:</strong> £{totalFinal?.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -302,6 +350,7 @@ export default function NewOrders() {
 
   return (
     <div className="container mt-4">
+      {/* Loader overlay */}
       {loading && (
         <div
           style={{
@@ -325,6 +374,7 @@ export default function NewOrders() {
         </div>
       )}
 
+      {/* Toast messages */}
       <ToastContainer
         position="top-end"
         className="p-3"
@@ -333,13 +383,7 @@ export default function NewOrders() {
         <Toast
           show={alert.show}
           onClose={() => setAlert({ ...alert, show: false })}
-          bg={
-            alert.variant === "success"
-              ? "success"
-              : alert.variant === "danger"
-              ? "danger"
-              : "info"
-          }
+          bg={alert.variant}
           delay={3000}
           autohide
         >
@@ -351,60 +395,73 @@ export default function NewOrders() {
         </Toast>
       </ToastContainer>
 
+      {/* Header with calendar */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="mb-0">Orders</h4>
+        <InputGroup className="w-auto d-flex align-items-center gap-2">
+          <DatePicker
+            selected={tempDateRange.start}
+            onChange={(date) =>
+              setTempDateRange((prev) => ({ ...prev, start: date }))
+            }
+            selectsStart
+            startDate={tempDateRange.start}
+            endDate={tempDateRange.end}
+            dateFormat="yyyy-MM-dd"
+            className="form-control"
+          />
+          <span>to</span>
+          <DatePicker
+            selected={tempDateRange.end}
+            onChange={(date) =>
+              setTempDateRange((prev) => ({ ...prev, end: date }))
+            }
+            selectsEnd
+            startDate={tempDateRange.start}
+            endDate={tempDateRange.end}
+            minDate={tempDateRange.start}
+            dateFormat="yyyy-MM-dd"
+            className="form-control"
+          />
+          <Button variant="primary" onClick={applyDateRange}>
+            Go
+          </Button>
+          <Button
+            variant="outline-secondary"
+            onClick={() => {
+              const todayStart = startOfDay(new Date());
+              const todayEnd = endOfDay(new Date());
+              setTempDateRange({ start: todayStart, end: todayEnd });
+              setDateRange({ start: todayStart, end: todayEnd });
+            }}
+          >
+            Clear
+          </Button>
+        </InputGroup>
       </div>
 
+      {/* Tabs for status */}
       <div className="d-flex gap-3 flex-wrap mb-4">
-        <button
-          className={`btn ${
-            activeTab === "pending" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
-          onClick={() => setActiveTab("pending")}
-        >
-          Pending
-        </button>
-        <button
-          className={`btn ${
-            activeTab === "accepted" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
-          onClick={() => setActiveTab("accepted")}
-        >
-          Accepted
-        </button>
-        <button
-          className={`btn ${
-            activeTab === "ontheway" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
-          onClick={() => setActiveTab("ontheway")}
-        >
-          On The Way
-        </button>
-        <button
-          className={`btn ${
-            activeTab === "completed" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
-          onClick={() => setActiveTab("completed")}
-        >
-          Completed
-        </button>
-        <button
-          className={`btn ${
-            activeTab === "rejected" ? "btn-dark" : "btn-outline-dark"
-          } rounded-pill px-4 shadow-sm`}
-          onClick={() => setActiveTab("rejected")}
-        >
-          Rejected
-        </button>
+        {["pending", "accepted", "ontheway", "completed", "rejected"].map(
+          (tab) => (
+            <button
+              key={tab}
+              className={`btn ${
+                activeTab === tab ? "btn-dark" : "btn-outline-dark"
+              } rounded-pill px-4 shadow-sm`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          )
+        )}
       </div>
 
+      {/* Orders accordion */}
       {error && <Alert variant="danger">{error}</Alert>}
-
       <Accordion>
         {filteredOrders.length === 0 && !loading && <div>No orders</div>}
-        {filteredOrders.map((order, idx) => {
-          return renderOrder(order, idx, false, activeTab);
-        })}
+        {filteredOrders.map((order, idx) => renderOrder(order, idx, activeTab))}
       </Accordion>
 
       {ReceiptModal()}
