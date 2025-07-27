@@ -112,114 +112,15 @@ const ReceiptWrapper = (props) => {
     }
   };
 
-  // Direct print with exact styling preservation
-  // const handleDirectPrint = () => {
-  //   setIsPrinting(true);
 
-  //   setTimeout(() => {
-  //     const printWindow = window.open('', '_blank');
-  //     const printDocument = printWindow.document;
-
-  //     // Get all existing styles
-  //     const allStyles = getAllStyles();
-
-  //     printDocument.write(`
-  //       <!DOCTYPE html>
-  //       <html>
-  //       <head>
-  //         <meta charset="UTF-8">
-  //         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  //         <title>Receipt</title>
-
-  //         <!-- Bootstrap CSS if used -->
-  //         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  //         <style>
-  //           /* All existing styles */
-  //           ${allStyles}
-
-  //           /* Print-specific overrides */
-  //           @page {
-  //             size: 80mm auto;
-  //             margin: 0mm;
-  //           }
-
-  //           @media print {
-  //             body {
-  //               margin: 0 !important;
-  //               padding: 0 !important;
-  //               width: 80mm !important;
-  //               background: white !important;
-  //               -webkit-print-color-adjust: exact !important;
-  //               print-color-adjust: exact !important;
-  //             }
-
-  //             .receipt-container {
-  //               width: 80mm !important;
-  //               max-width: 80mm !important;
-  //               margin: 0 !important;
-  //               padding: 2mm !important;
-  //               box-sizing: border-box !important;
-  //             }
-
-  //             * {
-  //               visibility: visible !important;
-  //               opacity: 1 !important;
-  //             }
-  //           }
-
-  //           body {
-  //             margin: 0;
-  //             padding: 0;
-  //             width: 80mm;
-  //             background: white;
-  //             font-family: inherit;
-  //           }
-
-  //           .receipt-container {
-  //             width: 80mm;
-  //             max-width: 80mm;
-  //             margin: 0;
-  //             padding: 2mm;
-  //             box-sizing: border-box;
-  //             background: white;
-  //           }
-  //         </style>
-  //       </head>
-  //       <body>
-  //         <div class="receipt-container">
-  //           ${printContentRef.current.innerHTML}
-  //         </div>
-
-  //         <script>
-  //           window.onload = function() {
-  //             setTimeout(() => {
-  //               window.print();
-  //               setTimeout(() => {
-  //                 window.close();
-  //               }, 1000);
-  //             }, 1000);
-  //           };
-  //         </script>
-  //       </body>
-  //       </html>
-  //     `);
-
-  //     printDocument.close();
-  //     setIsPrinting(false);
-  //   }, 100);
-  // };
 
   return (
     <div className="d-flex flex-column align-items-center">
-      {/* Hidden exact copy for printing/PDF - same as visible */}
 
-      {/* Visible preview - exact same styling */}
       <div ref={printContentRef} style={{ width: "80mm", maxWidth: "80mm" }}>
         <OrderDetails {...props} />
       </div>
 
-      {/* Control buttons */}
       <div className="d-flex gap-2 mb-2">
         <button
           className="btn btn-success"

@@ -18,8 +18,6 @@ export default function NewOrders() {
   const [activeTab, setActiveTab] = useState("accepted");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showStatusDialog, setShowStatusDialog] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [error, setError] = useState("");
   const [alert, setAlert] = useState({
     show: false,
@@ -27,10 +25,10 @@ export default function NewOrders() {
     variant: "success",
   });
   const { printReceipt, ReceiptModal } = useReceiptPrinter();
-  const handleMoreActions = async (orderId, newStatus) => {
+
+  const handleStatusChange = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      console.log(`new status = ${newStatus}`);
       const response = await fetch(`${API_URL}/api/order/status/${orderId}`, {
         method: "PUT",
         headers: {
@@ -45,7 +43,6 @@ export default function NewOrders() {
 
       if (data.status) {
         showAlert("Order status updated successfully!", "success");
-
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
             order.id === orderId ? { ...order, status: newStatus } : order
@@ -74,8 +71,6 @@ export default function NewOrders() {
         const data = await res.json();
         if (data.status && Array.isArray(data.result?.data)) {
           setOrders(data.result.data);
-
-          // Save all existing order IDs to localStorage on first load
           const existingOrderIds = data.result.data.map((order) => order.id);
           localStorage.setItem(
             "existingOrderIds",
@@ -95,9 +90,8 @@ export default function NewOrders() {
     fetchOrders();
   }, []);
 
-  // Helper to show alert with correct variant
   const showAlert = (message, variant = "success") => {
-    setAlert({ show: false, message: "", variant: "success" }); // Clear first
+    setAlert({ show: false, message: "", variant: "success" });
     setTimeout(() => {
       setAlert({ show: true, message, variant });
       setTimeout(
@@ -107,7 +101,6 @@ export default function NewOrders() {
     }, 10);
   };
 
-  // Filter orders by status for each tab
   const filteredOrders = orders.filter((order) => {
     if (activeTab === "pending") return order.status === "PENDING";
     if (activeTab === "accepted") return order.status === "ACCEPTED";
@@ -116,6 +109,61 @@ export default function NewOrders() {
     if (activeTab === "rejected") return order.status === "REJECTED";
     return true;
   });
+
+  const renderActionButtons = (order) => {
+    switch (order.status) {
+      case "PENDING":
+        return (
+          <>
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => handleStatusChange(order.id, "ACCEPTED")}
+            >
+              Accept
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => handleStatusChange(order.id, "REJECTED")}
+            >
+              Reject
+            </Button>
+          </>
+        );
+      case "ACCEPTED":
+        return (
+          <>
+            <Button
+              variant="warning"
+              size="sm"
+              onClick={() => handleStatusChange(order.id, "ON_THE_WAY")}
+            >
+              On The Way
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleStatusChange(order.id, "COMPLETED")}
+            >
+              Complete
+            </Button>
+          </>
+        );
+      case "ON_THE_WAY":
+        return (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleStatusChange(order.id, "COMPLETED")}
+          >
+            Mark as Delivered
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
 
   const renderOrder = (order, index, showButtons = false, status = null) => (
     <Accordion.Item
@@ -141,7 +189,7 @@ export default function NewOrders() {
             <Badge
               bg={
                 status === "pending"
-                  ? "secondary" // or "info" if you want blue
+                  ? "secondary"
                   : status === "accepted"
                   ? "success"
                   : status === "ontheway"
@@ -197,7 +245,6 @@ export default function NewOrders() {
                   <div>
                     <strong>Qty:</strong> {item.quantity}{" "}
                     {(() => {
-                      // Base price
                       const price = Number(
                         item.item?.price ||
                           item.variation?.price ||
@@ -205,12 +252,10 @@ export default function NewOrders() {
                           0
                       );
                       const quantity = item.quantity || 1;
-
                       const discountPercent =
                         item.item?.discount ||
                         item.variation?.item?.discount ||
                         0;
-
                       const discountAmountPerUnit =
                         price * (discountPercent / 100);
                       const discountedPrice = price - discountAmountPerUnit;
@@ -238,21 +283,14 @@ export default function NewOrders() {
               );
             })}
             <div className="text-end mt-3 d-flex justify-content-end gap-2">
-              <button
-                className="btn btn-outline-primary"
+              <Button
+                variant="outline-primary"
+                size="sm"
                 onClick={() => printReceipt(order)}
               >
                 🧾 Print Receipt
-              </button>
-              <button
-                className="btn btn-outline-secondary"
-                onClick={() => {
-                  setSelectedOrderId(order.id);
-                  setShowStatusDialog(true);
-                }}
-              >
-                More Actions
-              </button>
+              </Button>
+              {renderActionButtons(order)}
             </div>
           </>
         ) : (
@@ -264,7 +302,6 @@ export default function NewOrders() {
 
   return (
     <div className="container mt-4">
-      {/* Full-page loading overlay */}
       {loading && (
         <div
           style={{
@@ -288,7 +325,6 @@ export default function NewOrders() {
         </div>
       )}
 
-      {/* Toasts for alerts at top right */}
       <ToastContainer
         position="top-end"
         className="p-3"
@@ -319,7 +355,6 @@ export default function NewOrders() {
         <h4 className="mb-0">Orders</h4>
       </div>
 
-      {/* Custom Tab Buttons */}
       <div className="d-flex gap-3 flex-wrap mb-4">
         <button
           className={`btn ${
@@ -365,97 +400,12 @@ export default function NewOrders() {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {/* Accordion Content Based on Active Tab */}
       <Accordion>
         {filteredOrders.length === 0 && !loading && <div>No orders</div>}
         {filteredOrders.map((order, idx) => {
           return renderOrder(order, idx, false, activeTab);
         })}
       </Accordion>
-      <Modal
-        show={showStatusDialog}
-        onHide={() => setShowStatusDialog(false)}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Update Order Status</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {(() => {
-            if (!selectedOrderId) return null;
-
-            const selectedOrder = orders.find((o) => o.id === selectedOrderId);
-            const status = selectedOrder?.status;
-
-            if (status === "ACCEPTED") {
-              return (
-                <div className="d-flex flex-column gap-2">
-                  <Button
-                    variant="warning"
-                    onClick={() => {
-                      handleMoreActions(selectedOrderId, "ON_THE_WAY");
-                      setShowStatusDialog(false);
-                    }}
-                  >
-                    Status: On The Way
-                  </Button>
-                  <Button
-                    variant="success"
-                    onClick={() => {
-                      handleMoreActions(selectedOrderId, "COMPLETED");
-                      setShowStatusDialog(false);
-                    }}
-                  >
-                    Status: Delivered
-                  </Button>
-                </div>
-              );
-            }
-            if (status === "PENDING") {
-              return (
-                <div className="d-flex flex-column gap-2">
-                  <Button
-                    variant="success"
-                    onClick={() => {
-                      handleMoreActions(selectedOrderId, "ACCEPTED");
-                      setShowStatusDialog(false);
-                    }}
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      handleMoreActions(selectedOrderId, "REJECTED");
-                      setShowStatusDialog(false);
-                    }}
-                  >
-                    Reject
-                  </Button>
-                </div>
-              );
-            }
-            if (status === "ON_THE_WAY") {
-              return (
-                <div className="d-flex flex-column gap-2">
-                  <Button
-                    variant="success"
-                    onClick={() => {
-                      handleMoreActions(selectedOrderId, "COMPLETED");
-                      setShowStatusDialog(false);
-                    }}
-                  >
-                    Status: Delivered
-                  </Button>
-                </div>
-              );
-            }
-
-            // For COMPLETED or REJECTED, show message
-            return <p className="text-center mb-0">No actions required.</p>;
-          })()}
-        </Modal.Body>
-      </Modal>
 
       {ReceiptModal()}
     </div>

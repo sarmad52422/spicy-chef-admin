@@ -184,6 +184,7 @@ function GlobalNotifications() {
           );
 
           if (newOrder) {
+            
             setCurrentNewOrder(newOrder);
             setNewOrderModal(true);
             setHasNewNotifications(true);
@@ -312,7 +313,7 @@ function GlobalNotifications() {
     subtotal: `£${totalAmountValue.toFixed(2)}`,
     orderTotal: `£${totalAmountValue.toFixed(2)}`,
     totalAmount: `£${totalAmountValue.toFixed(2)}`,
-    discount: "£0.00", // discount already included in backend total
+    discount: `£${currentNewOrder.discount}`, // discount already included in backend total
     tax: `£${Number(currentNewOrder.tax || 0).toFixed(2)}`,
     tip: `£${Number(currentNewOrder.tip || 0).toFixed(2)}`,
     total: `£${totalAmountValue.toFixed(2)}`,

@@ -13,7 +13,14 @@ const allDays = [
 ];
 
 export default function Setting() {
-  const [deliveryFee, setDeliveryFee] = useState("");
+  const [deliveryFees, setDeliveryFees] = useState({
+    1: "",
+    3: "",
+    5: "",
+    7: "",
+    9: "",
+    11: ""
+  });
   const [serviceFee, setServiceFee] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
   const [discount, setDiscount] = useState("");
@@ -26,7 +33,6 @@ export default function Setting() {
   const [minOrderValue, setMinOrderValue] = useState(10);
   const [minOrderError, setMinOrderError] = useState("");
 
-  // Opening hours state for each day
   const [openingHours, setOpeningHours] = useState(() =>
     allDays.reduce((acc, day) => {
       acc[day] = { openTime: "09:00", closeTime: "22:00" };
@@ -49,47 +55,51 @@ export default function Setting() {
         const res = await fetch(`${API_URL}/api/admin/settings/${branch.id}`);
         const data = await res.json();
         if (data.status && data.result?.data?.setting) {
-          setDeliveryFee(
-            data.result.data.setting.deliveryFee?.toString() || ""
-          );
+          // Initialize delivery fees from API or with empty values
+          const feesFromApi = data.result.data.setting.deliveryFees || {};
+          setDeliveryFees({
+            1: feesFromApi[1]?.toString() || "",
+            3: feesFromApi[3]?.toString() || "",
+            5: feesFromApi[5]?.toString() || "",
+            7: feesFromApi[7]?.toString() || "",
+            9: feesFromApi[9]?.toString() || "",
+            11: feesFromApi[11]?.toString() || ""
+          });
+          
           setServiceFee(data.result.data.setting.serviceFee?.toString() || "");
-          setDeliveryTime(
-            data.result.data.setting.deliveryTime?.toString() || ""
-          );
+          setDeliveryTime(data.result.data.setting.deliveryTime?.toString() || "");
           setDiscount(data.result.data.setting.discount?.toString() || "");
-          setMinOrderValue(data.result.data.setting.minOrderVal?.toString()||0)
+          setMinOrderValue(data.result.data.setting.minOrderVal?.toString() || 0);
         }
       } catch (err) {
         setFeeError("Failed to fetch settings.");
       }
       setLoading(false);
-
-      // Fetch branch timings
       fetchBranchTimings();
     };
     fetchSettings();
   }, []);
+
   const validateMinOrder = (value) => {
     setMinOrderError("");
-
     if (value === "") {
       setMinOrderError("Minimum order value is required");
       return false;
     }
-
     const numValue = Number(value);
     if (isNaN(numValue) || numValue < 0) {
       setMinOrderError("Minimum order value must be a positive number");
       return false;
     }
-
     return true;
   };
+
   const handleMinOrderChange = (e) => {
     const value = e.target.value;
     setMinOrderValue(value);
     validateMinOrder(value);
   };
+
   const fetchBranchTimings = async () => {
     const branch = JSON.parse(localStorage.getItem("selectedBranch"));
     if (!branch?.id) return;
@@ -123,7 +133,6 @@ export default function Setting() {
     }
   };
 
-  // Discount validation function
   const validateDiscount = (value) => {
     setDiscountError("");
     if (value === "") return true;
@@ -144,26 +153,32 @@ export default function Setting() {
     return true;
   };
 
-  // Handle discount change with validation
   const handleDiscountChange = (e) => {
     const value = e.target.value;
     setDiscount(value);
     validateDiscount(value);
   };
 
+  const handleDeliveryFeeChange = (mile, value) => {
+    setDeliveryFees(prev => ({
+      ...prev,
+      [mile]: value
+    }));
+  };
+
   const handleDeliverySave = async () => {
     setFeeStatus(null);
     setFeeError(null);
 
-    // Validate discount before saving
     if (!validateDiscount(discount)) {
       setFeeError("Please fix the discount validation error before saving.");
       return;
     }
     if (!validateMinOrder(minOrderValue)) {
       setMinOrderError(
-        "Min Order value cannot be empty or invalid and negtive number"
+        "Min Order value cannot be empty or invalid and negative number"
       );
+      return;
     }
 
     const branch = JSON.parse(localStorage.getItem("selectedBranch"));
@@ -180,14 +195,15 @@ export default function Setting() {
         },
         body: JSON.stringify({
           branch_id: branch.id,
-          deliveryFee: Number(deliveryFee),
+          deliveryFees: Object.fromEntries(
+            Object.entries(deliveryFees).map(([mile, fee]) => [mile, Number(fee)])
+          ),
           serviceFee: Number(serviceFee),
           deliveryTime: Number(deliveryTime),
           discount: discount ? Number(discount) : 0,
           minOrderVal: minOrderValue,
         }),
       });
-      console.log(minOrderValue)
       const data = await res.json();
       if (data.status) {
         setFeeStatus("Settings updated successfully.");
@@ -199,7 +215,6 @@ export default function Setting() {
     }
   };
 
-  // Save handler for opening hours
   const handleTimingSave = async () => {
     setTimingStatus(null);
     setTimingError(null);
@@ -246,44 +261,63 @@ export default function Setting() {
       <Row>
         {/* Delivery Fee - Left Column */}
         <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label>
-              <strong>Delivery Fee</strong>{" "}
-              <span className="text-muted">Per 1 Mile</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Add Delivery Fee"
-              value={deliveryFee}
-              onChange={(e) => setDeliveryFee(e.target.value)}
-              disabled={loading}
-            />
-          </Form.Group>
+          <Card className="mb-4">
+            <Card.Body>
+              <Card.Title>Delivery Fees</Card.Title>
+              <div className="d-flex flex-wrap gap-3 mb-3">
+                {[1, 3, 5, 7, 9, 11].map(mile => (
+                  <div key={mile} className="flex-grow-1" style={{ minWidth: '120px' }}>
+                    <Form.Label className="small text-muted">{mile} mile{mile !== 1 ? 's' : ''}</Form.Label>
+                    <div className="input-group">
+                      <span className="input-group-text">£</span>
+                      <Form.Control
+                        type="number"
+                        placeholder="0.00"
+                        value={deliveryFees[mile]}
+                        onChange={(e) => handleDeliveryFeeChange(mile, e.target.value)}
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card.Body>
+          </Card>
+
           <Form.Group className="mb-3">
             <Form.Label>
               <strong>Service Fee</strong>
             </Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Add Service Fee"
-              value={serviceFee}
-              onChange={(e) => setServiceFee(e.target.value)}
-              disabled={loading}
-            />
+            <div className="input-group">
+              <span className="input-group-text">£</span>
+              <Form.Control
+                type="number"
+                placeholder="Add Service Fee"
+                value={serviceFee}
+                onChange={(e) => setServiceFee(e.target.value)}
+                disabled={loading}
+                min="0"
+                step="0.01"
+              />
+            </div>
           </Form.Group>
+
           <Form.Group className="mb-3">
             <Form.Label>
               <strong>Delivery Time</strong>{" "}
               <span className="text-muted">(in minutes)</span>
             </Form.Label>
             <Form.Control
-              type="text"
+              type="number"
               placeholder="Add Delivery Time"
               value={deliveryTime}
               onChange={(e) => setDeliveryTime(e.target.value)}
               disabled={loading}
+              min="0"
             />
           </Form.Group>
+
           <Form.Group className="mb-3">
             <Form.Label>
               <strong>Discount</strong> <span className="text-muted">(%)</span>
@@ -304,11 +338,15 @@ export default function Setting() {
                 {discountError}
               </Form.Control.Feedback>
             )}
-            <Form.Group className="mb-3">
-              <Form.Label>
-                <strong>Minimum Order Value</strong>{" "}
-                <span className="text-muted">(£)</span>
-              </Form.Label>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <strong>Minimum Order Value</strong>{" "}
+              <span className="text-muted">(£)</span>
+            </Form.Label>
+            <div className="input-group">
+              <span className="input-group-text">£</span>
               <Form.Control
                 type="number"
                 placeholder="Enter Minimum Order Value"
@@ -319,17 +357,17 @@ export default function Setting() {
                 step="0.01"
                 isInvalid={!!minOrderError}
               />
-              {minOrderError && (
-                <Form.Control.Feedback type="invalid">
-                  {minOrderError}
-                </Form.Control.Feedback>
-              )}
-              <Form.Text className="text-muted">
-                Orders below this amount will not be allowed.
-              </Form.Text>
-            </Form.Group>
-         
+            </div>
+            {minOrderError && (
+              <Form.Control.Feedback type="invalid">
+                {minOrderError}
+              </Form.Control.Feedback>
+            )}
+            <Form.Text className="text-muted">
+              Orders below this amount will not be allowed.
+            </Form.Text>
           </Form.Group>
+
           {feeStatus && (
             <Alert className="alert-success" variant="success">
               {feeStatus}
@@ -394,12 +432,12 @@ export default function Setting() {
             </Button>
           </Card>
           {timingStatus && (
-            <Alert variant="success" className="mt-3 absolute top-0 right-0">
+            <Alert variant="success" className="mt-3">
               {timingStatus}
             </Alert>
           )}
           {timingError && (
-            <Alert variant="danger" className="mt-3 absolute top-0 right-0">
+            <Alert variant="danger" className="mt-3">
               {timingError}
             </Alert>
           )}
