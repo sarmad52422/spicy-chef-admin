@@ -10,6 +10,7 @@ import {
   Toast,
   ToastContainer,
   InputGroup,
+  Card,
 } from "react-bootstrap";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -37,6 +38,7 @@ export default function NewOrders() {
     message: "",
     variant: "success",
   });
+  const [selectedOrder, setSelectedOrder] = useState(null); // Track selected order
 
   // Default to today's range
   const [dateRange, setDateRange] = useState({
@@ -165,6 +167,10 @@ export default function NewOrders() {
             order.id === orderId ? { ...order, status: newStatus } : order
           )
         );
+        // Update selected order if it's the one being modified
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
       } else {
         showAlert(data.message || "Failed to update order status", "danger");
       }
@@ -228,10 +234,151 @@ export default function NewOrders() {
     }
   };
 
+const renderReceipt = (order) => {
+  if (!order) return null;
+
+  return (
+    <Card className="h-100">
+      <Card.Header className="d-flex justify-content-between align-items-center">
+        <h5 className="mb-0">Order #{order.orderId || order.id}</h5>
+        <Badge
+          bg={
+            order.status === "PENDING"
+              ? "secondary"
+              : order.status === "ACCEPTED"
+              ? "success"
+              : order.status === "ON_THE_WAY"
+              ? "warning"
+              : order.status === "COMPLETED"
+              ? "primary"
+              : "danger"
+          }
+          className="px-3 py-2"
+        >
+          {order.status === "PENDING"
+            ? "Pending"
+            : order.status === "ACCEPTED"
+            ? "Accepted"
+            : order.status === "ON_THE_WAY"
+            ? "On The Way"
+            : order.status === "COMPLETED"
+            ? "Completed"
+            : "Rejected"}
+        </Badge>
+      </Card.Header>
+      <Card.Body>
+        <div className="mb-3">
+          <small className="text-muted">
+            {order.createdAt
+              ? new Date(order.createdAt).toLocaleString()
+              : "-"}
+          </small>
+        </div>
+        
+        {Array.isArray(order.items) && order.items.length > 0 ? (
+          <>
+            <div className="mb-4">
+              <div className="d-flex justify-content-between fw-bold mb-2 pb-2 border-bottom">
+                <div className="col-6">Item</div>
+                <div className="col-2 text-center">Qty</div>
+                <div className="col-2 text-end">Price</div>
+                <div className="col-2 text-end">Total</div>
+              </div>
+              
+              {order.items.map((item, i) => {
+                let itemName = "-";
+                let price = 0;
+
+                if (item.item?.name) {
+                  itemName = item.item.name;
+                  price = item.item.price;
+                } else if (item.variation?.item?.name) {
+                  itemName = item.variation.item.name;
+                  price = item.variation.price || item.variation.item.price;
+                } else if (item.modifierOption?.name) {
+                  itemName = item.modifierOption.name;
+                  price = item.modifierOption.price;
+                }
+
+                const quantity = item.quantity || 1;
+                const discountPercent =
+                  item.item?.discount || item.variation?.item?.discount || 0;
+                const discountAmountPerUnit = price * (discountPercent / 100);
+                const discountedPrice = price - discountAmountPerUnit;
+                const totalFinal = discountedPrice * quantity;
+
+                return (
+                  <React.Fragment key={i}>
+                    <div className="d-flex justify-content-between align-items-center py-2">
+                      <div className="col-6">
+                        <strong>{itemName}</strong>
+                        {discountPercent > 0 && (
+                          <div className="text-success small">
+                            {discountPercent}% off
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-2 text-center">{quantity}</div>
+                      <div className="col-2 text-end">£{price}</div>
+                      <div className="col-2 text-end fw-bold">
+                        £{totalFinal.toFixed(2)}
+                      </div>
+                    </div>
+                    {i < order.items.length - 1 && <hr className="my-1" />}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Order Summary */}
+            <div className="border-top pt-3">
+              <div className="d-flex justify-content-between">
+                <span>Subtotal:</span>
+                <span>£{order.subTotal || "0.00"}</span>
+              </div>
+              {order.deliveryFee > 0 && (
+                <div className="d-flex justify-content-between">
+                  <span>Delivery Fee:</span>
+                  <span>£{order.deliveryFee|| "0.00"}</span>
+                </div>
+              )}
+              {order.discountAmount > 0 && (
+                <div className="d-flex justify-content-between text-success">
+                  <span>Discount:</span>
+                  <span>-£{order.discountAmount || "0.00"}</span>
+                </div>
+              )}
+              <div className="d-flex justify-content-between fw-bold mt-2">
+                <span>Total:</span>
+                <span>£{order.totalAmount || "0.00"}</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => printReceipt(order)}
+              >
+                🧾 Print Receipt
+              </Button>
+              {renderActionButtons(order)}
+            </div>
+          </>
+        ) : (
+          <div>No items in this order</div>
+        )}
+      </Card.Body>
+    </Card>
+  );
+};
+
   const renderOrder = (order, index, status = null) => (
     <Accordion.Item
       eventKey={index.toString()}
       key={`${status}-${order.id}-${index}`}
+      onClick={() => setSelectedOrder(order)}
     >
       <Accordion.Header>
         <Row className="w-100">
@@ -276,80 +423,11 @@ export default function NewOrders() {
           </Col>
         </Row>
       </Accordion.Header>
-
-      <Accordion.Body>
-        {Array.isArray(order.items) && order.items.length > 0 ? (
-          <>
-            {order.items.map((item, i) => {
-              let itemName = "-";
-              let price = 0;
-
-              if (item.item?.name) {
-                itemName = item.item.name;
-                price = item.item.price;
-              } else if (item.variation?.item?.name) {
-                itemName = item.variation.item.name;
-                price = item.variation.price || item.variation.item.price;
-              } else if (item.modifierOption?.name) {
-                itemName = item.modifierOption.name;
-                price = item.modifierOption.price;
-              }
-
-              const quantity = item.quantity || 1;
-              const discountPercent =
-                item.item?.discount || item.variation?.item?.discount || 0;
-              const discountAmountPerUnit = price * (discountPercent / 100);
-              const discountedPrice = price - discountAmountPerUnit;
-              const totalDiscount = discountAmountPerUnit * quantity;
-              const totalFinal = discountedPrice * quantity;
-
-              return (
-                <div
-                  key={i}
-                  className="mb-2 d-flex justify-content-between align-items-center"
-                >
-                  <div>
-                    <strong>{itemName}</strong>
-                  </div>
-                  <div>
-                    <strong>Qty:</strong> {quantity}
-                    <div className="ms-3 d-flex flex-column text-end">
-                      <div>
-                        <strong>Price:</strong> £{price}
-                      </div>
-                      {discountPercent > 0 && (
-                        <div className="text-muted small">
-                          Discount: -£{totalDiscount?.toFixed(2)}
-                        </div>
-                      )}
-                      <div>
-                        <strong>Final:</strong> £{totalFinal?.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <div className="text-end mt-3 d-flex justify-content-end gap-2">
-              <Button
-                variant="outline-primary"
-                size="sm"
-                onClick={() => printReceipt(order)}
-              >
-                🧾 Print Receipt
-              </Button>
-              {renderActionButtons(order)}
-            </div>
-          </>
-        ) : (
-          <div>No items</div>
-        )}
-      </Accordion.Body>
     </Accordion.Item>
   );
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       {/* Loader overlay */}
       {loading && (
         <div
@@ -395,74 +473,89 @@ export default function NewOrders() {
         </Toast>
       </ToastContainer>
 
-      {/* Header with calendar */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h4 className="mb-0">Orders</h4>
-        <InputGroup className="w-auto d-flex align-items-center gap-2">
-          <DatePicker
-            selected={tempDateRange.start}
-            onChange={(date) =>
-              setTempDateRange((prev) => ({ ...prev, start: date }))
-            }
-            selectsStart
-            startDate={tempDateRange.start}
-            endDate={tempDateRange.end}
-            dateFormat="yyyy-MM-dd"
-            className="form-control"
-          />
-          <span>to</span>
-          <DatePicker
-            selected={tempDateRange.end}
-            onChange={(date) =>
-              setTempDateRange((prev) => ({ ...prev, end: date }))
-            }
-            selectsEnd
-            startDate={tempDateRange.start}
-            endDate={tempDateRange.end}
-            minDate={tempDateRange.start}
-            dateFormat="yyyy-MM-dd"
-            className="form-control"
-          />
-          <Button variant="primary" onClick={applyDateRange}>
-            Go
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={() => {
-              const todayStart = startOfDay(new Date());
-              const todayEnd = endOfDay(new Date());
-              setTempDateRange({ start: todayStart, end: todayEnd });
-              setDateRange({ start: todayStart, end: todayEnd });
-            }}
-          >
-            Clear
-          </Button>
-        </InputGroup>
-      </div>
+      <Row>
+        {/* Left column - Orders list */}
+        <Col md={selectedOrder ? 6 : 12}>
+          {/* Header with calendar */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h4 className="mb-0">Orders</h4>
+            <InputGroup className="w-auto d-flex align-items-center gap-2">
+              <DatePicker
+                selected={tempDateRange.start}
+                onChange={(date) =>
+                  setTempDateRange((prev) => ({ ...prev, start: date }))
+                }
+                selectsStart
+                startDate={tempDateRange.start}
+                endDate={tempDateRange.end}
+                dateFormat="yyyy-MM-dd"
+                className="form-control"
+              />
+              <span>to</span>
+              <DatePicker
+                selected={tempDateRange.end}
+                onChange={(date) =>
+                  setTempDateRange((prev) => ({ ...prev, end: date }))
+                }
+                selectsEnd
+                startDate={tempDateRange.start}
+                endDate={tempDateRange.end}
+                minDate={tempDateRange.start}
+                dateFormat="yyyy-MM-dd"
+                className="form-control"
+              />
+              <Button variant="primary" onClick={applyDateRange}>
+                Go
+              </Button>
+              <Button
+                variant="outline-secondary"
+                onClick={() => {
+                  const todayStart = startOfDay(new Date());
+                  const todayEnd = endOfDay(new Date());
+                  setTempDateRange({ start: todayStart, end: todayEnd });
+                  setDateRange({ start: todayStart, end: todayEnd });
+                }}
+              >
+                Clear
+              </Button>
+            </InputGroup>
+          </div>
 
-      {/* Tabs for status */}
-      <div className="d-flex gap-3 flex-wrap mb-4">
-        {["pending", "accepted", "ontheway", "completed", "rejected"].map(
-          (tab) => (
-            <button
-              key={tab}
-              className={`btn ${
-                activeTab === tab ? "btn-dark" : "btn-outline-dark"
-              } rounded-pill px-4 shadow-sm`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          )
+          {/* Tabs for status */}
+          <div className="d-flex gap-3 flex-wrap mb-4">
+            {["pending", "accepted", "ontheway", "completed", "rejected"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  className={`btn ${
+                    activeTab === tab ? "btn-dark" : "btn-outline-dark"
+                  } rounded-pill px-4 shadow-sm`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Orders accordion */}
+          {error && <Alert variant="danger">{error}</Alert>}
+          <Accordion>
+            {filteredOrders.length === 0 && !loading && <div>No orders</div>}
+            {filteredOrders.map((order, idx) =>
+              renderOrder(order, idx, activeTab)
+            )}
+          </Accordion>
+        </Col>
+
+        {/* Right column - Receipt */}
+        {selectedOrder && (
+          <Col md={6} className="mt-md-0 mt-4">
+            <h4 className="mb-3">Order Details</h4>
+            {renderReceipt(selectedOrder)}
+          </Col>
         )}
-      </div>
-
-      {/* Orders accordion */}
-      {error && <Alert variant="danger">{error}</Alert>}
-      <Accordion>
-        {filteredOrders.length === 0 && !loading && <div>No orders</div>}
-        {filteredOrders.map((order, idx) => renderOrder(order, idx, activeTab))}
-      </Accordion>
+      </Row>
 
       {ReceiptModal()}
     </div>
