@@ -550,10 +550,19 @@ const renderReceipt = (order) => {
 
         {/* Right column - Receipt */}
         {selectedOrder && (
-          <Col md={6} className="mt-md-0 mt-4">
-            <h4 className="mb-3">Order Details</h4>
-            {renderReceipt(selectedOrder)}
-          </Col>
+      <Col md={6} className="mt-md-0 mt-4">
+  <div className="d-flex justify-content-between align-items-center mb-3">
+    <h4 className="mb-0">Order Details</h4>
+    <button
+      className="btn-close"
+      onClick={()=>setSelectedOrder(null)}
+      aria-label="Close"
+      
+    ></button>
+  </div>
+  {renderReceipt(selectedOrder)}
+</Col>
+
         )}
       </Row>
 

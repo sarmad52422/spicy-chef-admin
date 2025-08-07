@@ -182,8 +182,8 @@ function GlobalNotifications() {
           const newOrder = newStatusOrders.find(
             (order) => !existingOrderIds.includes(order.id)
           );
-
-          if (newOrder) {
+          console.log("payment status = ",newOrder?.paymentStatus)
+          if ((newOrder && newOrder?.paymentStatus != "STRIPE_PROCESS") || newOrder?.paymentStatus == "PAID") {
             
             setCurrentNewOrder(newOrder);
             setNewOrderModal(true);
