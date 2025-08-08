@@ -30,8 +30,6 @@ import Login from "./pages/Login";
 import Setting from "./pages/Setting";
 import NewOrders from "./pages/NewOrders";
 import AuthWatcher from "./AuthWatcher";
-import OrderDetails from "./components/orderDetails";
-import ReceiptWrapper from "./components/printerWrapper";
 import { API_URL } from "./constants/contants";
 
 const NOTIFICATION_SOUND_URL = "/sound/notification.mp3";
@@ -530,38 +528,7 @@ function GlobalNotifications() {
         </Modal.Footer>
       </Modal>
 
-      {/* Receipt Modal */}
-      <Modal
-        show={showReceipt}
-        onHide={() => setShowReceipt(false)}
-        size="lg"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Order Receipt</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {receiptData && (
-            <ReceiptWrapper
-              orderId={receiptData.orderId}
-              address={receiptData.address}
-              date={receiptData.date}
-              items={receiptData.items}
-              subtotal={receiptData.subtotal}
-              discount={receiptData.discount}
-              tax={receiptData.tax}
-              tip={receiptData.tip}
-              total={receiptData.total}
-              serviceFee={receiptData.serviceFee}
-              paymentMethod={receiptData.paymentMethod}
-              paymentStatus={receiptData.paymentStatus}
-              orderTotal={receiptData.orderTotal}
-              deliveryFee={receiptData.deliveryFee}
-            />
-          )}
-        </Modal.Body>
-      </Modal>
-
+  
       <style jsx>{`
         @keyframes shake {
           0%,

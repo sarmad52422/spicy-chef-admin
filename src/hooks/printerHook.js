@@ -1,18 +1,13 @@
-import { useState } from "react";
-import ReceiptWrapper from "../components/printerWrapper";
-import { Button, Modal } from "react-bootstrap";
+import React, { useState, useRef } from "react";
+import { printHTMLWithQZ } from "../utils/print";
+import { generateReceiptHTML } from "../utils/generatePrintRecipt";
 
 export const useReceiptPrinter = () => {
   const [receiptData, setReceiptData] = useState(null);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
-  const closeModal = () => setShowReceiptModal(false);
+  const prepareReceipt = (order) => {
+    if (!order) return null;
 
- const printReceipt = (order) => {
-  try {
-    if (!order) return;
-
-    // Calculate subtotal using discounted per-item prices
     const subtotalValue = order.items.reduce((acc, item) => {
       const basePrice = Number(
         item.item?.price ||
@@ -21,26 +16,19 @@ export const useReceiptPrinter = () => {
           0
       );
       const quantity = item.quantity || 1;
-
-      // Get discount percentage (if available)
       const discountPercent =
         item.item?.discount || item.variation?.item?.discount || 0;
-
       const discountedPrice = basePrice - (basePrice * discountPercent) / 100;
-
       return acc + discountedPrice * quantity;
     }, 0);
 
     const discountValue = Number(order.discount || 0);
     const serviceFeeValue = Number(order.serviceFee || 0);
     const deliveryFeeValue = Number(order.deliveryFee || 0);
-
     const orderTotalValue = subtotalValue - discountValue;
-    const totalAmountValue =
-      orderTotalValue + serviceFeeValue + deliveryFeeValue;
+    const totalAmountValue = orderTotalValue + serviceFeeValue + deliveryFeeValue;
 
-    // Prepare receipt data with both original and discounted price per item
-    setReceiptData({
+    const data = {
       orderId: order.orderId || order.id,
       address: order.address || "N/A",
       date: order.createdAt || new Date(),
@@ -56,8 +44,8 @@ export const useReceiptPrinter = () => {
         const quantity = item.quantity || 1;
         const discountPercent =
           item.item?.discount || item.variation?.item?.discount || 0;
-
-        const discountedPrice = basePrice - (basePrice * discountPercent) / 100;
+        const discountedPrice =
+          basePrice - (basePrice * discountPercent) / 100;
 
         return {
           name:
@@ -66,7 +54,6 @@ export const useReceiptPrinter = () => {
             item.modifierOption?.name ||
             "Unknown Item",
           quantity,
-          // Compact format: Original (Discount%) → Final
           totalAmount:
             discountPercent > 0
               ? `£${basePrice.toFixed(2)}(-${discountPercent}%) → £${(
@@ -84,30 +71,30 @@ export const useReceiptPrinter = () => {
       total: `£${Number(order.total || totalAmountValue).toFixed(2)}`,
       paymentMethod: order.paymentType || "Cash",
       paymentStatus: order.paymentStatus || "PAID",
-    });
+    };
 
-    setShowReceiptModal(true);
-  } catch (e) {
-    console.log(`Error = `, e);
-  }
-};
+    setReceiptData(data);
+    return data;
+  };
 
-  const ReceiptModal = () =>
-    receiptData ? (
-      <Modal show={showReceiptModal} onHide={closeModal} centered size="lg">
-        <Modal.Body>
-          <ReceiptWrapper {...receiptData} />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeModal}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    ) : null;
+  const handleQZPrint = async (data) => {
+    if (!data) {
+      console.warn("No receipt data available to print");
+      return;
+    }
+
+    try {
+      const html = generateReceiptHTML(data);
+      await printHTMLWithQZ(html);
+      console.log("Printed successfully");
+    } catch (e) {
+      console.error("Silent print failed:", e);
+    }
+  };
 
   return {
-    printReceipt,
-    ReceiptModal,
+    prepareReceipt, 
+    handleQZPrint,  
+    receiptData,   
   };
 };
