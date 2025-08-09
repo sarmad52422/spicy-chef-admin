@@ -13,6 +13,7 @@ export function generateReceiptHTML(data) {
     total,
     paymentMethod,
     paymentStatus,
+    phoneNo
   } = data;
 
   const isCard = paymentMethod.toLowerCase().includes("card");
@@ -216,7 +217,7 @@ export function generateReceiptHTML(data) {
     <div class="light-divider"></div>
     
     <div>
-      <div>Customer ID: not provided</div>
+      <div>Customer Phone: ${phoneNo}</div>
       <div>Delivery Address:</div>
       <div><strong>${address}</strong></div>
     </div>

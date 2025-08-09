@@ -16,7 +16,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useReceiptPrinter } from "../hooks/printerHook";
 import { API_URL } from "../constants/contants";
-import { generateReceiptHTML } from "../utils/generatePrintRecipt";
 
 const startOfDay = (date) => {
   const d = new Date(date);

@@ -166,8 +166,6 @@ const token = localStorage.getItem("token");
         </Modal.Footer>
       </Modal>
 
-      {/* Modal: Receipt */}
-      {ReceiptModal()}
     </div>
   );
 };

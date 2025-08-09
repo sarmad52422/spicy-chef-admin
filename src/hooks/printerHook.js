@@ -71,6 +71,7 @@ export const useReceiptPrinter = () => {
       total: `£${Number(order.total || totalAmountValue).toFixed(2)}`,
       paymentMethod: order.paymentType || "Cash",
       paymentStatus: order.paymentStatus || "PAID",
+      phoneNo:order.phoneNo
     };
 
     setReceiptData(data);
