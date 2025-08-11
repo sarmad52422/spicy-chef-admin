@@ -17,6 +17,7 @@
     "date-fns": "^4.1.0",
     "escpos": "^3.0.0-alpha.6",
     "html2canvas": "^1.4.1",
+    "jsrsasign": "^11.1.0",
     "qz-tray": "^2.2.5",
     "react": "^19.1.0",
     "react-bootstrap": "^2.10.10",
