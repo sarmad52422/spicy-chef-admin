@@ -89,12 +89,12 @@ export default function NewOrders() {
         },
       });
       const data = await res.json();
+      console.log(data.result.data[0])
 
       if (data.status && Array.isArray(data.result?.data)) {
         const sorted = data.result.data.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
         );
-        console.log(`Sorted at = `, sorted);
         setOrders(sorted);
       } else {
         setOrders([]);
@@ -134,7 +134,7 @@ export default function NewOrders() {
   // Filter orders by status + date
   const filteredOrders = useMemo(() => {
     const filteredByStatus = orders.filter((order) => {
-      if (activeTab === "pending") return order.status === "PENDING";
+      if (activeTab === "pending") return order.status === "PENDING" || "NEW";
       if (activeTab === "accepted") return order.status === "ACCEPTED";
       if (activeTab === "ontheway") return order.status === "ON_THE_WAY";
       if (activeTab === "completed") return order.status === "COMPLETED";
