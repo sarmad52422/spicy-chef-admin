@@ -29,39 +29,34 @@ const endOfDay = (date) => {
 };
 
 export default function NewOrders() {
-  const [activeTab, setActiveTab] = useState("accepted");
+  const [activeTab, setActiveTab] = useState("pending");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [htmlData,setHtmlData] = useState(undefined)
+  const [htmlData, setHtmlData] = useState(undefined);
   const [error, setError] = useState("");
   const [alert, setAlert] = useState({
     show: false,
     message: "",
     variant: "success",
   });
-  const [selectedOrder, setSelectedOrder] = useState(null); // Track selected order
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Default to today's range
   const [dateRange, setDateRange] = useState({
     start: startOfDay(new Date()),
     end: endOfDay(new Date()),
   });
-
-  // Temporary range for the picker (applied on Go)
   const [tempDateRange, setTempDateRange] = useState({
     start: startOfDay(new Date()),
     end: endOfDay(new Date()),
   });
 
-  const { prepareReceipt, handleQZPrint, } = useReceiptPrinter();
+  const { prepareReceipt, handleQZPrint } = useReceiptPrinter();
 
-  // Auto-reset to today at midnight
   useEffect(() => {
     const now = new Date();
     const msUntilMidnight =
       new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() -
       now.getTime();
-
     const timer = setTimeout(() => {
       setDateRange({
         start: startOfDay(new Date()),
@@ -72,11 +67,9 @@ export default function NewOrders() {
         end: endOfDay(new Date()),
       });
     }, msUntilMidnight);
-
     return () => clearTimeout(timer);
-  }, [dateRange]);
+  }, []);
 
-  // Fetch orders
   const fetchOrders = async () => {
     setLoading(true);
     setError("");
@@ -89,8 +82,6 @@ export default function NewOrders() {
         },
       });
       const data = await res.json();
-      console.log(data.result.data[0])
-
       if (data.status && Array.isArray(data.result?.data)) {
         const sorted = data.result.data.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -123,7 +114,6 @@ export default function NewOrders() {
     }, 10);
   };
 
-  // Apply date range
   const applyDateRange = () => {
     setDateRange({
       start: startOfDay(tempDateRange.start),
@@ -131,21 +121,22 @@ export default function NewOrders() {
     });
   };
 
-  // Filter orders by status + date
+  // Filter orders by tab and date
   const filteredOrders = useMemo(() => {
-    const filteredByStatus = orders.filter((order) => {
-      if (activeTab === "pending") return order.status === "PENDING" || "NEW";
-      if (activeTab === "accepted") return order.status === "ACCEPTED";
-      if (activeTab === "ontheway") return order.status === "ON_THE_WAY";
-      if (activeTab === "completed") return order.status === "COMPLETED";
-      if (activeTab === "rejected") return order.status === "REJECTED";
-      return true;
-    });
-
-    return filteredByStatus.filter((order) => {
-      const createdAt = new Date(order.createdAt);
-      return createdAt >= dateRange.start && createdAt <= dateRange.end;
-    });
+    return orders
+      .filter((order) => {
+        if (activeTab === "pending")
+          return order.status === "PENDING" || order.status === "NEW";
+        if (activeTab === "accepted") return order.status === "ACCEPTED";
+        if (activeTab === "ontheway") return order.status === "ON_THE_WAY";
+        if (activeTab === "completed") return order.status === "COMPLETED";
+        if (activeTab === "rejected") return order.status === "REJECTED";
+        return true;
+      })
+      .filter((order) => {
+        const createdAt = new Date(order.createdAt);
+        return createdAt >= dateRange.start && createdAt <= dateRange.end;
+      });
   }, [orders, activeTab, dateRange]);
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -160,7 +151,6 @@ export default function NewOrders() {
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await response.json();
-
       if (data.status) {
         showAlert("Order status updated successfully!", "success");
         setOrders((prev) =>
@@ -168,10 +158,8 @@ export default function NewOrders() {
             order.id === orderId ? { ...order, status: newStatus } : order
           )
         );
-        // Update selected order if it's the one being modified
-        if (selectedOrder && selectedOrder.id === orderId) {
+        if (selectedOrder && selectedOrder.id === orderId)
           setSelectedOrder({ ...selectedOrder, status: newStatus });
-        }
       } else {
         showAlert(data.message || "Failed to update order status", "danger");
       }
@@ -183,6 +171,7 @@ export default function NewOrders() {
   const renderActionButtons = (order) => {
     switch (order.status) {
       case "PENDING":
+      case "NEW":
         return (
           <>
             <Button
@@ -234,17 +223,18 @@ export default function NewOrders() {
         return null;
     }
   };
+
   const renderReceipt = (order) => {
     if (!order) return null;
-    console.log(Object.keys(order))
-
     return (
       <Card className="h-100">
         <Card.Header className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Order #{order.orderId || order.id}</h5>
           <Badge
             bg={
-              order.status === "PENDING"
+              order.status === "NEW"
+                ? "info"
+                : order.status === "PENDING"
                 ? "secondary"
                 : order.status === "ACCEPTED"
                 ? "success"
@@ -256,7 +246,9 @@ export default function NewOrders() {
             }
             className="px-3 py-2"
           >
-            {order.status === "PENDING"
+            {order.status === "NEW"
+              ? "NEW"
+              : order.status === "PENDING"
               ? "Pending"
               : order.status === "ACCEPTED"
               ? "Accepted"
@@ -289,7 +281,6 @@ export default function NewOrders() {
                 {order.items.map((item, i) => {
                   let itemName = "-";
                   let price = 0;
-
                   if (item.item?.name) {
                     itemName = item.item.name;
                     price = item.item.price;
@@ -304,8 +295,8 @@ export default function NewOrders() {
                   const quantity = item.quantity || 1;
                   const discountPercent =
                     item.item?.discount || item.variation?.item?.discount || 0;
-                  const discountAmountPerUnit = price * (discountPercent / 100);
-                  const discountedPrice = price - discountAmountPerUnit;
+                  const discountedPrice =
+                    price - price * (discountPercent / 100);
                   const totalFinal = discountedPrice * quantity;
 
                   return (
@@ -331,7 +322,6 @@ export default function NewOrders() {
                 })}
               </div>
 
-              {/* Order Summary */}
               <div className="border-top pt-3">
                 <div className="d-flex justify-content-between">
                   <span>Subtotal:</span>
@@ -355,49 +345,39 @@ export default function NewOrders() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="d-flex justify-content-end gap-2 mt-4">
                 <Button
                   variant="outline-primary"
                   size="sm"
                   onClick={() => {
-                   const data = prepareReceipt(order); 
-                   setHtmlData(data)
-                    setTimeout(() => {
-                      handleQZPrint(data); 
-                    }, 1000);
+                    const data = prepareReceipt(order);
+                    setHtmlData(data);
+                    setTimeout(() => handleQZPrint(data), 1000);
                   }}
                 >
-
                   🧾 Print Receipt
                 </Button>
-               
                 {renderActionButtons(order)}
-               
-
               </div>
             </>
           ) : (
             <div>No items in this order</div>
           )}
         </Card.Body>
-
       </Card>
     );
   };
 
-  const renderOrder = (order, index, status = null) => (
+  const renderOrder = (order, index) => (
     <Accordion.Item
       eventKey={index.toString()}
-      key={`${status}-${order.id}-${index}`}
+      key={order.id}
       onClick={() => setSelectedOrder(order)}
     >
       <Accordion.Header>
         <Row className="w-100">
           <Col xs={6}>
-            <div>
-              <strong>Order #{order.orderId || order.id}</strong>
-            </div>
+            <strong>Order #{order.orderId || order.id}</strong>
             <div className="text-muted">
               {order.createdAt
                 ? new Date(order.createdAt).toLocaleString()
@@ -410,25 +390,29 @@ export default function NewOrders() {
           >
             <Badge
               bg={
-                status === "pending"
+                order.status === "NEW"
+                  ? "info"
+                  : order.status === "PENDING"
                   ? "secondary"
-                  : status === "accepted"
+                  : order.status === "ACCEPTED"
                   ? "success"
-                  : status === "ontheway"
+                  : order.status === "ON_THE_WAY"
                   ? "warning"
-                  : status === "completed"
+                  : order.status === "COMPLETED"
                   ? "primary"
                   : "danger"
               }
-              className="px-3 py-2 me-2"
+              className="px-3 py-2"
             >
-              {status === "pending"
+              {order.status === "NEW"
+                ? "NEW"
+                : order.status === "PENDING"
                 ? "Pending"
-                : status === "accepted"
+                : order.status === "ACCEPTED"
                 ? "Accepted"
-                : status === "ontheway"
+                : order.status === "ON_THE_WAY"
                 ? "On The Way"
-                : status === "completed"
+                : order.status === "COMPLETED"
                 ? "Completed"
                 : "Rejected"}
             </Badge>
@@ -440,7 +424,6 @@ export default function NewOrders() {
 
   return (
     <div className="container-fluid mt-4">
-      {/* Loader overlay */}
       {loading && (
         <div
           style={{
@@ -463,8 +446,6 @@ export default function NewOrders() {
           />
         </div>
       )}
-
-      {/* Toast messages */}
       <ToastContainer
         position="top-end"
         className="p-3"
@@ -486,9 +467,7 @@ export default function NewOrders() {
       </ToastContainer>
 
       <Row>
-        {/* Left column - Orders list */}
         <Col md={selectedOrder ? 6 : 12}>
-          {/* Header with calendar */}
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Orders</h4>
             <InputGroup className="w-auto d-flex align-items-center gap-2">
@@ -533,7 +512,6 @@ export default function NewOrders() {
             </InputGroup>
           </div>
 
-          {/* Tabs for status */}
           <div className="d-flex gap-3 flex-wrap mb-4">
             {["pending", "accepted", "ontheway", "completed", "rejected"].map(
               (tab) => (
@@ -550,17 +528,13 @@ export default function NewOrders() {
             )}
           </div>
 
-          {/* Orders accordion */}
           {error && <Alert variant="danger">{error}</Alert>}
           <Accordion>
             {filteredOrders.length === 0 && !loading && <div>No orders</div>}
-            {filteredOrders.map((order, idx) =>
-              renderOrder(order, idx, activeTab)
-            )}
+            {filteredOrders.map((order, idx) => renderOrder(order, idx))}
           </Accordion>
         </Col>
 
-        {/* Right column - Receipt */}
         {selectedOrder && (
           <Col md={6} className="mt-md-0 mt-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -575,7 +549,6 @@ export default function NewOrders() {
           </Col>
         )}
       </Row>
-
     </div>
   );
 }
