@@ -151,6 +151,7 @@ export default function NewOrders() {
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await response.json();
+
       if (data.status) {
         showAlert("Order status updated successfully!", "success");
         setOrders((prev) =>
@@ -228,6 +229,7 @@ export default function NewOrders() {
     if (!order) return null;
     return (
       <Card className="h-100">
+        {/* Header with Order ID + Status */}
         <Card.Header className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Order #{order.orderId || order.id}</h5>
           <Badge
@@ -259,7 +261,9 @@ export default function NewOrders() {
               : "Rejected"}
           </Badge>
         </Card.Header>
+
         <Card.Body>
+          {/* Order Date */}
           <div className="mb-3">
             <small className="text-muted">
               {order.createdAt
@@ -268,6 +272,29 @@ export default function NewOrders() {
             </small>
           </div>
 
+          {/* Customer Info */}
+          <div className="mb-4">
+            <h6 className="fw-bold mb-2">Customer Information</h6>
+            <div>
+              <strong>Name:</strong> {order.fullName || "-"}
+            </div>
+            <div>
+              <strong>Email:</strong> {order.email || "-"}
+            </div>
+            <div>
+              <strong>Phone:</strong> {order.phoneNo || "-"}
+            </div>
+            <div>
+              <strong>Address:</strong> {order.address || "-"}
+            </div>
+            {order.postCode && (
+              <div>
+                <strong>Postcode:</strong> {order.postCode}
+              </div>
+            )}
+          </div>
+
+          {/* Items List */}
           {Array.isArray(order.items) && order.items.length > 0 ? (
             <>
               <div className="mb-4">
@@ -322,6 +349,7 @@ export default function NewOrders() {
                 })}
               </div>
 
+              {/* Order Totals */}
               <div className="border-top pt-3">
                 <div className="d-flex justify-content-between">
                   <span>Subtotal:</span>
@@ -345,6 +373,7 @@ export default function NewOrders() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="d-flex justify-content-end gap-2 mt-4">
                 <Button
                   variant="outline-primary"
