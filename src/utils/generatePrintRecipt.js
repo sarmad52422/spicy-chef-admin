@@ -13,7 +13,7 @@ export function generateReceiptHTML(data) {
     total,
     paymentMethod,
     paymentStatus,
-    phoneNo
+    phoneNo,
   } = data;
 
   const isCard = paymentMethod.toLowerCase().includes("card");
@@ -203,8 +203,12 @@ export function generateReceiptHTML(data) {
     <div class="light-divider"></div>
     
     <div>
-      <div><strong>Paid By:</strong> ${isCard ? `Card ****${cardLast4}` : paymentMethod}</div>
-      <div><strong>Status:</strong> ${paymentStatus}</div>
+      <div><strong>Paid By:</strong> ${
+        isCard ? `Card ****${cardLast4}` : paymentMethod
+      }</div>
+      <div><strong>Status:</strong> ${
+        paymentStatus === "PENDING" ? "Cash to be paid" : "Order Paids"
+      }</div>
     </div>
     
     <div class="light-divider"></div>

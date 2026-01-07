@@ -26,7 +26,8 @@ export const useReceiptPrinter = () => {
     const serviceFeeValue = Number(order.serviceFee || 0);
     const deliveryFeeValue = Number(order.deliveryFee || 0);
     const orderTotalValue = subtotalValue - discountValue;
-    const totalAmountValue = orderTotalValue + serviceFeeValue + deliveryFeeValue;
+    const totalAmountValue =
+      orderTotalValue + serviceFeeValue + deliveryFeeValue;
 
     const data = {
       orderId: order.orderId || order.id,
@@ -44,8 +45,7 @@ export const useReceiptPrinter = () => {
         const quantity = item.quantity || 1;
         const discountPercent =
           item.item?.discount || item.variation?.item?.discount || 0;
-        const discountedPrice =
-          basePrice - (basePrice * discountPercent) / 100;
+        const discountedPrice = basePrice - (basePrice * discountPercent) / 100;
 
         return {
           name:
@@ -71,7 +71,7 @@ export const useReceiptPrinter = () => {
       total: `£${Number(order.total || totalAmountValue).toFixed(2)}`,
       paymentMethod: order.paymentType || "Cash",
       paymentStatus: order.paymentStatus || "PAID",
-      phoneNo:order.phoneNo
+      phoneNo: order.phoneNo,
     };
 
     setReceiptData(data);
@@ -94,8 +94,8 @@ export const useReceiptPrinter = () => {
   };
 
   return {
-    prepareReceipt, 
-    handleQZPrint,  
-    receiptData,   
+    prepareReceipt,
+    handleQZPrint,
+    receiptData,
   };
 };

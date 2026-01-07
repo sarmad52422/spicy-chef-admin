@@ -343,6 +343,16 @@ export default function NewOrders() {
                   <strong>Postcode:</strong> {order.postCode}
                 </Col>
               )}
+              <Col xs={12}>
+                <strong>Payment Type:</strong>
+                {order.paymentType}
+              </Col>
+              <Col xs={12}>
+                <strong>Payment Status: </strong>
+                {order.paymentStatus === "PENDING"
+                  ? " Cash to be paid"
+                  : " Order Payment Complete"}
+              </Col>
             </Row>
           </div>
 
