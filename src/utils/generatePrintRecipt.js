@@ -38,7 +38,7 @@ export function generateReceiptHTML(data) {
         <td style="word-break: break-word; font-size: 14px; font-weight: bold; max-width: 180px; border-bottom: 1px dashed #ccc;">${item.name}</td>
         <td class="text-center" style="font-size: 14px; border-bottom: 1px dashed #ccc;">${item.quantity}</td>
         <td class="text-end" style="font-size: 14px; border-bottom: 1px dashed #ccc;">${item.totalAmount}</td>
-      </tr>`
+      </tr>`,
     )
     .join("");
 
@@ -227,9 +227,7 @@ export function generateReceiptHTML(data) {
     </div>
     
     <div class="branding">
-      <div class="brand-name">LuminarSoft</div>
-      <div>TEL: +92 300 0256232</div>
-      <div><i class="fas fa-laptop-code"></i> luminarsoft.co.uk</div>
+      <div class="brand-name">EatmeOnline</div>
     </div>
   </body>
   </html>
